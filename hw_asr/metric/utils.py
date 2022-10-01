@@ -1,10 +1,20 @@
 # Don't forget to support cases when target_text == ''
+import editdistance
 
 def calc_cer(target_text, predicted_text) -> float:
-    # TODO: your code here
-    raise NotImplementedError()
+    """
+    Inspired by seminar 3
+    """
+    if len(target_text) == 0:
+        return 1
+    return editdistance.distance(target_text, predicted_text) / len(target_text)
 
 
 def calc_wer(target_text, predicted_text) -> float:
-    # TODO: your code here
-    raise NotImplementedError()
+    """
+    Inspired by seminar 3
+    """
+    splitted_target = target_text.split(' ')
+    if len(splitted_target) == 0:
+        return 1
+    return editdistance.distance(splitted_target, predicted_text.split(' ')) / len(splitted_target)
