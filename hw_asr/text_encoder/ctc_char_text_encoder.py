@@ -7,19 +7,12 @@ from .char_text_encoder import CharTextEncoder
 
 
 class Hypothesis(NamedTuple):
+    """
+    Add last character for conducting dynamic programming in Beam Search
+    """
     text: str
-    prob: float
-
-
-class HypothesisWithLastChar(NamedTuple):
-    """
-    Class for storing hypothesis with last characters while
-    conducting dynamic programming in Beam Search
-    """
-    text:      str
     last_char: str
-    prob:      float
-
+    prob: float
 
 class CTCCharTextEncoder(CharTextEncoder):
     EMPTY_TOK = "^"
@@ -53,25 +46,24 @@ class CTCCharTextEncoder(CharTextEncoder):
         assert len(probs.shape) == 2
         char_length, voc_size = probs.shape
         assert voc_size == len(self.ind2char)
-        hypos: List[HypothesisWithLastChar] = []
+        hypos: List[Hypothesis] = []
         # Start dynamic programming
-        hypos.append(HypothesisWithLastChar('', self.EMPTY_TOK, 1.0))
+        hypos.append(Hypothesis('', self.EMPTY_TOK, 1.0))
         for prob in probs:
-            updated_hypos: List[HypothesisWithLastChar] = []
+            updated_hypos: List[Hypothesis] = []
             for text, last_char, prob in hypos:
                 for i in range(voc_size):
                     if self.ind2char[i] == last_char:
                         updated_hypos.append(
-                            HypothesisWithLastChar(text, last_char, prob * probs[i])
+                            Hypothesis(text, last_char, prob * probs[i])
                         )
                     else:
                         updated_hypos.append(
-                            HypothesisWithLastChar(
+                            Hypothesis(
                                 (text + last_char).replace(self.EMPTY_TOK, ''), 
                                 self.ind2char[i], 
                                 prob * probs[i]
                             )
                         )
             hypos = sorted(updated_hypos, key=lambda x: x.prob, reverse=True)[:beam_size]
-        # Convert output from triples to pairs
-        return [Hypothesis(text, prob) for text, _, prob in hypos]
+        return hypos
