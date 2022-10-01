@@ -1,4 +1,5 @@
 from typing import List, NamedTuple
+from collections import defaultdict
 
 import torch
 
@@ -8,6 +9,16 @@ from .char_text_encoder import CharTextEncoder
 class Hypothesis(NamedTuple):
     text: str
     prob: float
+
+
+class HypothesisWithLastChar(NamedTuple):
+    """
+    Class for storing hypothesis with last characters while
+    conducting dynamic programming in Beam Search
+    """
+    text:      str
+    last_char: str
+    prob:      float
 
 
 class CTCCharTextEncoder(CharTextEncoder):
@@ -20,18 +31,47 @@ class CTCCharTextEncoder(CharTextEncoder):
         self.char2ind = {v: k for k, v in self.ind2char.items()}
 
     def ctc_decode(self, inds: List[int]) -> str:
-        # TODO: your code here
-        raise NotImplementedError()
+        """
+        Inspired by seminar 3
+        """
+        last_char_ind = self.char2ind[self.EMPTY_TOK]
+        decoded_chars = []
+        for ind in inds:
+            if ind == last_char_ind or ind == self.char2ind[self.EMPTY_TOK]:
+                continue
+            last_char_ind = ind
+            decoded_chars.append(self.ind2char[ind])
+        return ''.join(decoded_chars)
 
     def ctc_beam_search(self, probs: torch.tensor, probs_length,
                         beam_size: int = 100) -> List[Hypothesis]:
         """
         Performs beam search and returns a list of pairs (hypothesis, hypothesis probability).
+
+        Inspired by seminar 3
         """
         assert len(probs.shape) == 2
         char_length, voc_size = probs.shape
         assert voc_size == len(self.ind2char)
-        hypos: List[Hypothesis] = []
-        # TODO: your code here
-        raise NotImplementedError
-        return sorted(hypos, key=lambda x: x.prob, reverse=True)
+        hypos: List[HypothesisWithLastChar] = []
+        # Start dynamic programming
+        hypos.append(HypothesisWithLastChar('', self.EMPTY_TOK, 1.0))
+        for prob in probs:
+            updated_hypos: List[HypothesisWithLastChar] = []
+            for text, last_char, prob in hypos:
+                for i in range(voc_size):
+                    if self.ind2char[i] == last_char:
+                        updated_hypos.append(
+                            HypothesisWithLastChar(text, last_char, prob * probs[i])
+                        )
+                    else:
+                        updated_hypos.append(
+                            HypothesisWithLastChar(
+                                (text + last_char).replace(self.EMPTY_TOK, ''), 
+                                self.ind2char[i], 
+                                prob * probs[i]
+                            )
+                        )
+            hypos = sorted(updated_hypos, key=lambda x: x.prob, reverse=True)[:beam_size]
+        # Convert output from triples to pairs
+        return [Hypothesis(text, prob) for text, _, prob in hypos]
