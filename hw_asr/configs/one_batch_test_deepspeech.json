@@ -11,8 +11,14 @@
     "log_spec": true
   },
   "augmentations": {
-    "wave": [],
-    "spectrogram": []
+    "wave": [
+      "GaussianNoise",
+      "RoomImpulseResponse"
+    ],
+    "spectrogram": [
+      "FrequencyMasking",
+      "TimeStretch"
+    ]
   },
   "arch": {
     "type": "DeepSpeech2",
