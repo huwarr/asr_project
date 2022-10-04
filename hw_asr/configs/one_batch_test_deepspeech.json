@@ -12,12 +12,34 @@
   },
   "augmentations": {
     "wave": [
-      "GaussianNoise",
-      "RoomImpulseResponse"
+      {
+        "type": "GaussianNoise",
+        "args": {}
+      },
+      {
+        "type": "RoomImpulseResponse",
+        "args": {}
+      },
+      {
+        "type": "PitchShift",
+        "args": {
+          "sample_rate": 16000
+        }
+      }
     ],
     "spectrogram": [
-      "FrequencyMasking",
-      "TimeStretch"
+      {
+        "type": "FrequencyMasking",
+        "args": {
+          "freq_mask_param": 128
+        }
+      },
+      {
+        "type": "TimeStretch",
+        "args": {
+          "n_freq": 128
+        }
+      }
     ]
   },
   "arch": {
