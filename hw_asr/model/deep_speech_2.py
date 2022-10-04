@@ -35,16 +35,16 @@ class DeepSpeech2(BaseModel):
 
         input_size = 1024
 
-        self.rnns = [
+        self.rnns = nn.ModuleList([
             nn.GRU(input_size=input_size, hidden_size=fc_hidden, batch_first=True),
             nn.GRU(input_size=fc_hidden, hidden_size=fc_hidden, batch_first=True),
             nn.GRU(input_size=fc_hidden, hidden_size=fc_hidden, batch_first=True)
-        ]
-        self.batchNorms = [
+        ])
+        self.batchNorms = nn.ModuleList([
             nn.BatchNorm1d(num_features=fc_hidden),
             nn.BatchNorm1d(num_features=fc_hidden),
             nn.BatchNorm1d(num_features=fc_hidden)
-        ]
+        ])
 
         # Lookahead is just a CNN, but we move input to the right by tau/2 positions
         self.lookaheadConv = nn.Conv1d(
@@ -71,7 +71,7 @@ class DeepSpeech2(BaseModel):
         # pad/crop to get self.num_cells cells in RNNs
         # = min(x.shape[-1], self.num_cells)
         length = spectrogram.shape[-1]
-        new_x = torch.zeros(x.shape[0], x.shape[1], length)
+        new_x = torch.zeros(x.shape[0], x.shape[1], length).to(x.device)
         new_x[:, :, :x.shape[-1]] = x
         # GRU takes input of shape: (batch size X sequence length X features)
         x = new_x.transpose(1, 2)
