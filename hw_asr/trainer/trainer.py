@@ -90,12 +90,12 @@ class Trainer(BaseTrainer):
 
         if epoch == self.start_epoch:
             # SortaGrad
-            dataloader = self.train_sortagrad_dataloader
+            dataloader_curr = self.train_sortagrad_dataloader
         else:
-            dataloader = self.train_dataloader
+            dataloader_curr = self.train_dataloader
 
         for batch_idx, batch in enumerate(
-                tqdm(dataloader, desc="train", total=self.len_epoch)
+                tqdm(dataloader_curr, desc="train", total=self.len_epoch)
         ):
             try:
                 batch = self.process_batch(

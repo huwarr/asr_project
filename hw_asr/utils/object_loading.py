@@ -1,6 +1,5 @@
 from operator import xor
-
-import torch
+import copy
 from torch.utils.data import ConcatDataset, DataLoader
 
 import hw_asr.augmentations
@@ -64,12 +63,12 @@ def get_dataloaders(configs: ConfigParser, text_encoder: BaseTextEncoder):
 
         # for SortaGrad
         if split == "train":
-            dataset_sortagrad = torch.clone(dataset)
+            dataset_sortagrad = copy.deepcopy(dataset)
             dataset_sortagrad._index = sorted(dataset._index, key=lambda x: x['audio_len'], reverse=False)
             dataloader = DataLoader(
                 dataset_sortagrad, batch_size=bs, collate_fn=collate_fn,
                 shuffle=False, num_workers=num_workers,
                 batch_sampler=batch_sampler, drop_last=drop_last
             )
-            dataloaders["train_sortagrad"]
+            dataloaders["train_sortagrad"] = dataloader
     return dataloaders
