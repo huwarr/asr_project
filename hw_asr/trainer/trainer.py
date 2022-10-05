@@ -36,7 +36,8 @@ class Trainer(BaseTrainer):
             len_epoch=None,
             skip_oom=True,
             sortagrad=False,
-            beam_size=100
+            beam_size=100,
+            use_lm=False
     ):
         super().__init__(model, criterion, metrics, optimizer, config, device)
         self.skip_oom = skip_oom
@@ -63,6 +64,7 @@ class Trainer(BaseTrainer):
         )
         self.sortagrad = sortagrad
         self.beam_size = beam_size
+        self.use_lm = use_lm
 
     @staticmethod
     def move_batch_to_device(batch, device: torch.device):
@@ -228,9 +230,14 @@ class Trainer(BaseTrainer):
         shuffle(tuples)
         rows = {}
         for target, audio_path, log_prob, prob_length in tuples[:examples_to_log]:
-            hypos = self.text_encoder.ctc_beam_search(
-                log_prob.exp().cpu(), prob_length.cpu(), beam_size=self.beam_size
-            )
+            if self.use_lm:
+                hypos = self.text_encoder.ctc_beam_search_with_shallow_fusion(
+                    log_prob.exp().cpu(), prob_length.cpu(), beam_size=self.beam_size
+                )
+            else:
+                hypos = self.text_encoder.ctc_beam_search(
+                    log_prob.exp().cpu(), prob_length.cpu(), beam_size=self.beam_size
+                )
             pred = hypos[0].text
             raw_pred = hypos[0].raw_text
             target = BaseTextEncoder.normalize_text(target)
