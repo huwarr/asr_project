@@ -66,7 +66,8 @@ def main(config):
         dataloaders=dataloaders,
         lr_scheduler=lr_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None),
-        sortagrad=True
+        sortagrad=True,
+        use_lm=True
     )
 
     trainer.train()

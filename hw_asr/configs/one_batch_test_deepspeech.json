@@ -90,6 +90,30 @@
       "args": {
         "name": "CER (argmax)"
       }
+    },
+    {
+      "type": "OracleWERMetric",
+      "args": {
+        "name": "WER (oracle)"
+      }
+    },
+    {
+      "type": "OracleCERMetric",
+      "args": {
+        "name": "CER (oracle)"
+      }
+    },
+    {
+      "type": "BeamSearchWithLMWERMetric",
+      "args": {
+        "name": "WER (BeamSearch and LM)"
+      }
+    },
+    {
+      "type": "BeamSearchWithLMCERMetric",
+      "args": {
+        "name": "CER (BeamSearch and LM)"
+      }
     }
   ],
   "lr_scheduler": {
