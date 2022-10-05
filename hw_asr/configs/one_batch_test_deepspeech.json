@@ -27,20 +27,7 @@
         }
       }
     ],
-    "spectrogram": [
-      {
-        "type": "FrequencyMasking",
-        "args": {
-          "freq_mask_param": 128
-        }
-      },
-      {
-        "type": "TimeStretch",
-        "args": {
-          "n_freq": 128
-        }
-      }
-    ]
+    "spectrogram": [ ]
   },
   "arch": {
     "type": "DeepSpeech2",
@@ -84,7 +71,7 @@
   "optimizer": {
     "type": "AdamW",
     "args": {
-      "lr": 1e-3
+      "lr": 3e-4
     }
   },
   "loss": {
@@ -109,14 +96,14 @@
     "type": "OneCycleLR",
     "args": {
       "steps_per_epoch": 100,
-      "epochs": 50,
+      "epochs": 10,
       "anneal_strategy": "cos",
-      "max_lr": 1e-2,
+      "max_lr": 1e-3,
       "pct_start": 0.2
     }
   },
   "trainer": {
-    "epochs": 50,
+    "epochs": 10,
     "save_dir": "saved/",
     "save_period": 5,
     "verbosity": 2,
