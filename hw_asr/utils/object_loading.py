@@ -65,10 +65,12 @@ def get_dataloaders(configs: ConfigParser, text_encoder: BaseTextEncoder):
         if split == "train":
             dataset_sortagrad = copy.deepcopy(dataset)
             dataset_sortagrad._index = sorted(dataset._index, key=lambda x: x['audio_len'], reverse=False)
+            batch_sampler = configs.init_obj(params["batch_sampler"], batch_sampler_module,data_source=dataset_sortagrad)
+
             dataloader = DataLoader(
                 dataset_sortagrad, batch_size=bs, collate_fn=collate_fn,
                 shuffle=False, num_workers=num_workers,
-                batch_sampler=batch_sampler, drop_last=drop_last
+                batch_sampler=batch_sampler, drop_last=False
             )
             dataloaders["train_sortagrad"] = dataloader
     return dataloaders
