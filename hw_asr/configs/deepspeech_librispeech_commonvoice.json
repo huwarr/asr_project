@@ -33,12 +33,6 @@
         "args": {
           "freq_mask_param": 128
         }
-      },
-      {
-        "type": "TimeStretch",
-        "args": {
-          "n_freq": 128
-        }
       }
     ]
   },
@@ -52,26 +46,70 @@
   "data": {
     "train": {
       "batch_size": 512,
-      "num_workers": -1,
+      "num_workers": 5,
       "datasets": [
         {
           "type": "LibrispeechDataset",
           "args": {
-            "part": "train-clean",
+            "part": "train-other-500",
+            "max_audio_length": 20.0,
+            "max_text_length": 400
+          }
+        },
+        {
+          "type": "CommonVoice",
+          "args": {
+            "part": "train",
             "max_audio_length": 20.0,
             "max_text_length": 400
           }
         }
       ]
     },
-    "val": {
-      "batch_size": 10,
-      "num_workers": 0,
+    "val-clean": {
+      "batch_size": 50,
+      "num_workers": 5,
       "datasets": [
         {
           "type": "LibrispeechDataset",
           "args": {
             "part": "dev-clean"
+          }
+        }
+      ]
+    },
+    "val-other": {
+      "batch_size": 50,
+      "num_workers": 5,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "dev-other"
+          }
+        }
+      ]
+    },
+    "test-clean": {
+      "batch_size": 50,
+      "num_workers": 5,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "test-clean"
+          }
+        }
+      ]
+    },
+    "test-other": {
+      "batch_size": 50,
+      "num_workers": 5,
+      "datasets": [
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "test-other"
           }
         }
       ]
