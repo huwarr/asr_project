@@ -27,19 +27,18 @@ class ArgmaxWERMetric(BaseMetric):
             wers.append(calc_wer(target_text, pred_text))
         return sum(wers) / len(wers)
 
-# 
-# class BeamSearchWERMetric(BaseMetric):
-#     def __init__(self, text_encoder: CTCCharTextEncoder, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.text_encoder = text_encoder
-# 
-#     def __call__(self, log_probs: Tensor, log_probs_length: Tensor, text: List[str], beam_size: int, **kwargs):
-#         wers = []
-#         lengths = log_probs_length.detach().numpy()
-#         for log_prob, length, target_text in zip(log_probs, lengths, text):
-#             hypos = self.text_encoder.ctc_beam_search(log_prob.exp().numpy(), length, beam_size)
-#             target_text = BaseTextEncoder.normalize_text(target_text)
-#             wers.append([])
-#             for hypo in hypos:
-#                 wers[-1].append(calc_wer(target_text, hypo.text))
-#         return sum(wers) / len(wers)
+
+class BeamSearchWERMetric(BaseMetric):
+    def __init__(self, text_encoder: CTCCharTextEncoder, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.text_encoder = text_encoder
+
+    def __call__(self, log_probs: Tensor, log_probs_length: Tensor, text: List[str], beam_size: int, **kwargs):
+        wers = []
+        lengths = log_probs_length.detach().numpy()
+        for log_prob, length, target_text in zip(log_probs, lengths, text):
+            hypos = self.text_encoder.ctc_beam_search(log_prob.exp().numpy(), length, beam_size)
+            pred = hypos[0].text
+            target_text = BaseTextEncoder.normalize_text(target_text)
+            wers.append(calc_wer(target_text, pred))
+        return sum(wers) / len(wers)
