@@ -6,7 +6,7 @@ from hw_asr.base import BaseModel
 
 
 class DeepSpeech2(BaseModel):
-    def __init__(self, n_feats, n_class, fc_hidden=512, tau=80, num_cells=2560, **batch):
+    def __init__(self, n_feats, n_class, fc_hidden=512, tau=80, **batch):
         super().__init__(n_feats, n_class, **batch)
         # GRU
         # three layers of 2D convolution
@@ -21,10 +21,8 @@ class DeepSpeech2(BaseModel):
 
         # Parameters of concolutions: page 5 (Table 2)
 
-        self.num_cells = num_cells
-
         self.cnns = Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(41, 11), stride=(2, 2), padding=(20, 5)),
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(41, 11), stride=(2, 1), padding=(20, 5)),
             # They didn't mention activation in the paper.....
             nn.ReLU(),
             nn.BatchNorm2d(num_features=32),
@@ -68,14 +66,8 @@ class DeepSpeech2(BaseModel):
         # reshape for RNNs (3d -> 2d)
         # (batch size X features X sequence length)
         x = x.view(x.shape[0], -1, x.shape[-1])
-        # pad/crop to get self.num_cells cells in RNNs
-        # = min(x.shape[-1], self.num_cells)
-        length = spectrogram.shape[-1]
-        new_x = torch.zeros(x.shape[0], x.shape[1], length).to(x.device)
-        new_x[:, :, :x.shape[-1]] = x
         # GRU takes input of shape: (batch size X sequence length X features)
-        x = new_x.transpose(1, 2)
-        #x = x.transpose(1, 2)
+        x = x.transpose(1, 2)
         # finally, RNNs
         for i, rnn in enumerate(self.rnns):
             # only hidden states go further
