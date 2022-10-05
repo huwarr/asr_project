@@ -35,12 +35,14 @@ class Trainer(BaseTrainer):
             lr_scheduler=None,
             len_epoch=None,
             skip_oom=True,
+            sortagrad=False
     ):
         super().__init__(model, criterion, metrics, optimizer, config, device)
         self.skip_oom = skip_oom
         self.text_encoder = text_encoder
         self.config = config
         self.train_dataloader = dataloaders["train"]
+        self.train_sortagrad_dataloader = dataloaders["train_sortagrad"]
         if len_epoch is None:
             # epoch-based training
             self.len_epoch = len(self.train_dataloader)
@@ -58,6 +60,7 @@ class Trainer(BaseTrainer):
         self.evaluation_metrics = MetricTracker(
             "loss", *[m.name for m in self.metrics], writer=self.writer
         )
+        self.sortagrad = sortagrad
 
     @staticmethod
     def move_batch_to_device(batch, device: torch.device):
@@ -84,8 +87,15 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
+
+        if epoch == self.start_epoch:
+            # SortaGrad
+            dataloader = self.train_sortagrad_dataloader
+        else:
+            dataloader = self.train_dataloader
+
         for batch_idx, batch in enumerate(
-                tqdm(self.train_dataloader, desc="train", total=self.len_epoch)
+                tqdm(dataloader, desc="train", total=self.len_epoch)
         ):
             try:
                 batch = self.process_batch(
