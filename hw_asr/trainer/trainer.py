@@ -35,7 +35,8 @@ class Trainer(BaseTrainer):
             lr_scheduler=None,
             len_epoch=None,
             skip_oom=True,
-            sortagrad=False
+            sortagrad=False,
+            beam_size=100
     ):
         super().__init__(model, criterion, metrics, optimizer, config, device)
         self.skip_oom = skip_oom
@@ -50,7 +51,7 @@ class Trainer(BaseTrainer):
             # iteration-based training
             self.train_dataloader = inf_loop(self.train_dataloader)
             self.len_epoch = len_epoch
-        self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train"}
+        self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train" and k != "train_sortagrad"}
         self.lr_scheduler = lr_scheduler
         self.log_step = 50
 
@@ -61,6 +62,7 @@ class Trainer(BaseTrainer):
             "loss", *[m.name for m in self.metrics], writer=self.writer
         )
         self.sortagrad = sortagrad
+        self.beam_size = beam_size
 
     @staticmethod
     def move_batch_to_device(batch, device: torch.device):
@@ -219,20 +221,18 @@ class Trainer(BaseTrainer):
             *args,
             **kwargs,
     ):
-        # TODO: implement logging of beam search results
         if self.writer is None:
             return
-        argmax_inds = log_probs.cpu().argmax(-1).numpy()
-        argmax_inds = [
-            inds[: int(ind_len)]
-            for inds, ind_len in zip(argmax_inds, log_probs_length.numpy())
-        ]
-        argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
-        argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
-        tuples = list(zip(argmax_texts, text, argmax_texts_raw, audio_path))
+
+        tuples = list(zip(text, audio_path, log_probs, log_probs_length))
         shuffle(tuples)
         rows = {}
-        for pred, target, raw_pred, audio_path in tuples[:examples_to_log]:
+        for target, audio_path, log_prob, prob_length in tuples[:examples_to_log]:
+            hypos = self.text_encoder.ctc_beam_search(
+                log_prob.exp().cpu(), prob_length.cpu(), beam_size=self.beam_size
+            )
+            pred = hypos[0].text
+            raw_pred = hypos[0].raw_text
             target = BaseTextEncoder.normalize_text(target)
             wer = calc_wer(target, pred) * 100
             cer = calc_cer(target, pred) * 100

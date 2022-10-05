@@ -11,6 +11,7 @@ class Hypothesis(NamedTuple):
     Add last character for conducting dynamic programming in Beam Search
     """
     text: str
+    raw_text: str
     last_char: str
     prob: float
 
@@ -55,12 +56,13 @@ class CTCCharTextEncoder(CharTextEncoder):
                 for i in range(voc_size):
                     if self.ind2char[i] == last_char:
                         updated_hypos.append(
-                            Hypothesis(text, last_char, prob * probs[i])
+                            Hypothesis(text, text + last_char, last_char, prob * probs[i])
                         )
                     else:
                         updated_hypos.append(
                             Hypothesis(
-                                (text + last_char).replace(self.EMPTY_TOK, ''), 
+                                (text + last_char).replace(self.EMPTY_TOK, ''),
+                                text + last_char,
                                 self.ind2char[i], 
                                 prob * probs[i]
                             )
