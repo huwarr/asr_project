@@ -11,6 +11,8 @@ from hw_asr.trainer import Trainer
 from hw_asr.utils import ROOT_PATH
 from hw_asr.utils.object_loading import get_dataloaders
 from hw_asr.utils.parse_config import ConfigParser
+from hw_asr.metric.utils import calc_cer, calc_wer
+from hw_asr.base.base_text_encoder import BaseTextEncoder
 
 DEFAULT_CHECKPOINT_PATH = ROOT_PATH / "default_test_model" / "checkpoint.pth"
 
@@ -58,18 +60,38 @@ def main(config, out_file):
             )
             batch["probs"] = batch["log_probs"].exp().cpu()
             batch["argmax"] = batch["probs"].argmax(-1)
+            cers, wers = [], []
             for i in range(len(batch["text"])):
                 argmax = batch["argmax"][i]
                 argmax = argmax[: int(batch["log_probs_length"][i])]
+                hypos = text_encoder.ctc_beam_search(
+                    batch["probs"][i], batch["log_probs_length"][i], beam_size=100
+                )
+                pred_text_beam_search = [hypo.text for hypo in hypos[:10]]
+                target = batch["text"][i]
+
                 results.append(
                     {
-                        "ground_trurh": batch["text"][i],
+                        "ground_trurh": target,
                         "pred_text_argmax": text_encoder.ctc_decode(argmax.cpu().numpy()),
-                        "pred_text_beam_search": text_encoder.ctc_beam_search(
-                            batch["probs"][i], batch["log_probs_length"][i], beam_size=100
-                        )[:10],
+                        "pred_text_beam_search": pred_text_beam_search,
                     }
                 )
+
+                pred = hypos[0].text
+                target = BaseTextEncoder.normalize_text(target)
+                wers.append(calc_wer(target, pred) * 100)
+                cers.append(calc_cer(target, pred) * 100)
+
+            results.append(
+                {
+                    "CER (oracle)": sum(cers) / len(cers),
+                    "WER (oracle)": sum(wers) / len(wers)
+                }
+            )
+
+
+
     with Path(out_file).open("w") as f:
         json.dump(results, f, indent=2)
 
