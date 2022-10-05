@@ -2,9 +2,9 @@ from typing import List, NamedTuple
 from collections import defaultdict
 
 import torch
+import transformers
 
 from .char_text_encoder import CharTextEncoder
-
 
 class Hypothesis(NamedTuple):
     """
@@ -23,6 +23,12 @@ class CTCCharTextEncoder(CharTextEncoder):
         vocab = [self.EMPTY_TOK] + list(self.alphabet)
         self.ind2char = dict(enumerate(vocab))
         self.char2ind = {v: k for k, v in self.ind2char.items()}
+
+        # we don't want to waste time on downloading models if we don't need them
+        self.lm = None
+        self.lm_tokenizer = None
+        self.alpha = 0.7
+        self.beta = 0.2
 
     def ctc_decode(self, inds: List[int]) -> str:
         """
@@ -68,4 +74,55 @@ class CTCCharTextEncoder(CharTextEncoder):
                             )
                         )
             hypos = sorted(updated_hypos, key=lambda x: x.prob, reverse=True)[:beam_size]
+        return hypos
+
+    def ctc_beam_search_with_shallow_fusion(self, probs: torch.tensor, probs_length,
+                        beam_size: int = 100) -> List[Hypothesis]:
+        # download LM for shallow fusion if haven't done it yet
+        if not self.lm:
+            transformers.utils.logging.set_verbosity_error()
+            transformers.utils.logging.disable_progress_bar()
+            self.lm = transformers.AutoModelForSequenceClassification.from_pretrained("madhurjindal/autonlp-Gibberish-Detector-492513457")
+            self.lm_tokenizer = transformers.AutoTokenizer.from_pretrained("madhurjindal/autonlp-Gibberish-Detector-492513457")
+        # strat with usual Beam Search
+        assert len(probs.shape) == 2
+        char_length, voc_size = probs.shape
+        assert voc_size == len(self.ind2char)
+        hypos: List[Hypothesis] = []
+        hypos.append(Hypothesis('', self.EMPTY_TOK, 1.0))
+        for prob in probs:
+            updated_hypos: List[Hypothesis] = []
+            for text, last_char, prob in hypos:
+                for i in range(voc_size):
+                    if self.ind2char[i] == last_char:
+                        updated_hypos.append(
+                            Hypothesis(text, text + last_char, last_char, prob * probs[i])
+                        )
+                    else:
+                        updated_hypos.append(
+                            Hypothesis(
+                                (text + last_char).replace(self.EMPTY_TOK, ''),
+                                text + last_char,
+                                self.ind2char[i], 
+                                prob * probs[i]
+                            )
+                        )
+            
+            # Rescore hypothesis with LM before cutting the beam
+            texts = [hypo.text for hypo in updated_hypos]
+            scores = [hypo.prob for hypo in updated_hypos]
+            lengths = [len(hypo.text) for hypo in updated_hypos]
+            lm_input = self.lm_tokenizer(texts, padding=True, return_tensors="pt")
+            # The LM we've chosen was trained on 4-class classification with the following labels:
+            #   - 0: clean
+            #   - 1: mild gibberish 
+            #   - 2: noise
+            #   - 3: word salad
+            # We will use the 'clean' thing only
+            lm_scores = torch.nn.functional.softmax(self.lm(**lm_input).logits)[:, 0]
+            new_scores = torch.tensor(scores) + self.alpha * lm_scores - self.beta * torch.tensor(lengths)
+            indices = new_scores.argsort(descending=True).tolist()
+
+            # Cut beam
+            hypos = [updated_hypos[ind] for ind in indices[:beam_size]]
         return hypos

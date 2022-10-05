@@ -14,4 +14,6 @@ wandb
 pyctcdecode
 torchaudio~=0.11.0
 pillow
+
 sklearn
+transformers

@@ -64,7 +64,7 @@ def main(config, out_file):
             for i in range(len(batch["text"])):
                 argmax = batch["argmax"][i]
                 argmax = argmax[: int(batch["log_probs_length"][i])]
-                hypos = text_encoder.ctc_beam_search(
+                hypos = text_encoder.ctc_beam_search_with_shallow_fusion(
                     batch["probs"][i], batch["log_probs_length"][i], beam_size=100
                 )
                 pred_text_beam_search = [hypo.text for hypo in hypos[:10]]
@@ -85,8 +85,8 @@ def main(config, out_file):
 
             results.append(
                 {
-                    "CER (oracle)": sum(cers) / len(cers),
-                    "WER (oracle)": sum(wers) / len(wers)
+                    "CER": sum(cers) / len(cers),
+                    "WER": sum(wers) / len(wers)
                 }
             )
 
