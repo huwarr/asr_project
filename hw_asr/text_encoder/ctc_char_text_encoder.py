@@ -79,8 +79,6 @@ class CTCCharTextEncoder(CharTextEncoder):
                         beam_size: int = 100) -> List[Hypothesis]:
         # download LM for shallow fusion if haven't done it yet
         if not self.lm:
-            transformers.utils.logging.set_verbosity_error()
-            transformers.utils.logging.disable_progress_bar()
             self.lm = kenlm.Model('lm/3-gram.pruned.3e-7.arpa')
         # strat with usual Beam Search
         assert len(probs.shape) == 2
@@ -110,9 +108,7 @@ class CTCCharTextEncoder(CharTextEncoder):
             texts = [hypo.text for hypo in updated_hypos]
             scores = [hypo.prob for hypo in updated_hypos]
             lengths = [len(hypo.text) for hypo in updated_hypos]
-            lm_scores = torch.nn.functional.softmax(
-                torch.tensor([self.lm.score(text) for text in texts])
-            )
+            lm_scores = torch.tensor([10**self.lm.score(text) for text in texts])
             new_scores = torch.tensor(scores) + self.alpha * lm_scores - self.beta * torch.tensor(lengths)
             indices = new_scores.argsort(descending=True).tolist()
 
