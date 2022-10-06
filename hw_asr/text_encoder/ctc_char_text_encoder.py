@@ -2,7 +2,7 @@ from typing import List, NamedTuple
 from collections import defaultdict
 
 import torch
-import transformers
+import kenlm
 
 from .char_text_encoder import CharTextEncoder
 
@@ -26,9 +26,8 @@ class CTCCharTextEncoder(CharTextEncoder):
 
         # we don't want to waste time on downloading models if we don't need them
         self.lm = None
-        self.lm_tokenizer = None
-        self.alpha = 0.7
-        self.beta = 0.2
+        self.alpha = 0.5
+        self.beta = 0..01
 
     def ctc_decode(self, inds: List[int]) -> str:
         """
@@ -82,8 +81,7 @@ class CTCCharTextEncoder(CharTextEncoder):
         if not self.lm:
             transformers.utils.logging.set_verbosity_error()
             transformers.utils.logging.disable_progress_bar()
-            self.lm = transformers.AutoModelForSequenceClassification.from_pretrained("madhurjindal/autonlp-Gibberish-Detector-492513457")
-            self.lm_tokenizer = transformers.AutoTokenizer.from_pretrained("madhurjindal/autonlp-Gibberish-Detector-492513457")
+            self.lm = kenlm.Model('lm/3-gram.pruned.3e-7.arpa')
         # strat with usual Beam Search
         assert len(probs.shape) == 2
         char_length, voc_size = probs.shape
@@ -112,14 +110,9 @@ class CTCCharTextEncoder(CharTextEncoder):
             texts = [hypo.text for hypo in updated_hypos]
             scores = [hypo.prob for hypo in updated_hypos]
             lengths = [len(hypo.text) for hypo in updated_hypos]
-            lm_input = self.lm_tokenizer(texts, padding=True, return_tensors="pt")
-            # The LM we've chosen was trained on 4-class classification with the following labels:
-            #   - 0: clean
-            #   - 1: mild gibberish 
-            #   - 2: noise
-            #   - 3: word salad
-            # We will use the 'clean' thing only
-            lm_scores = torch.nn.functional.softmax(self.lm(**lm_input).logits)[:, 0]
+            lm_scores = torch.nn.functional.softmax(
+                torch.tensor([self.lm.score(text) for text in texts])
+            )
             new_scores = torch.tensor(scores) + self.alpha * lm_scores - self.beta * torch.tensor(lengths)
             indices = new_scores.argsort(descending=True).tolist()
 
