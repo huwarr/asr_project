@@ -41,7 +41,7 @@ class DeepSpeech2(BaseModel):
 
         # Lookahead is just a CNN, but we move input to the right by tau/2 positions
         self.lookaheadConv = nn.Conv1d(
-            in_channels=fc_hidden, out_channels=fc_hidden, kernel_size=tau + 1, padding=tau//2
+            in_channels=fc_hidden, out_channels=fc_hidden, kernel_size=tau + 1, padding=tau//2, groups=fc_hidden
         )
 
         self.lookahead = Sequential(
