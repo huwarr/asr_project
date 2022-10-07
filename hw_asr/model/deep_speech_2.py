@@ -8,18 +8,13 @@ from hw_asr.base import BaseModel
 class DeepSpeech2(BaseModel):
     def __init__(self, n_feats, n_class, fc_hidden=512, tau=80, **batch):
         super().__init__(n_feats, n_class, **batch)
-        # GRU
-        # three layers of 2D convolution
-        # 9-layer, 7 RNN + BatchNorm + frequency Convolution
-        #      or
-        # 5-layer, 3 RNN + BatchNorm
+        # From the paper:
+        #     The best English model has 2 layers of 2D convolution, 
+        #     followed by 3 layers of unidirectional recurrent layers 
+        #     with 2560 GRU cells each, followed by a lookahead convolution 
+        #     layer with τ = 80, trained with BatchNorm and SortaGrad.
 
-        # The best English model has 2 layers of 2D convolution, 
-        # followed by 3 layers of unidirectional recurrent layers 
-        # with 2560 GRU cells each, followed by a lookahead convolution 
-        # layer with τ = 80, trained with BatchNorm and SortaGrad.
-
-        # Parameters of concolutions: page 5 (Table 2)
+        # Parameters of convolutions: page 5 (Table 2)
 
         self.cnns = Sequential(
             nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(41, 11), stride=(2, 2), padding=(20, 5)),
@@ -60,10 +55,10 @@ class DeepSpeech2(BaseModel):
 
 
     def forward(self, spectrogram, **batch):
-        # add checnnels
+        # add channels
         x = torch.unsqueeze(spectrogram, dim=1)
         x = self.cnns(x)
-        # reshape for RNNs (3d -> 2d)
+        # reshape for RNNs (4d -> 3d)
         # (batch size X features X sequence length)
         x = x.view(x.shape[0], -1, x.shape[-1])
         # GRU takes input of shape: (batch size X sequence length X features)
@@ -81,11 +76,15 @@ class DeepSpeech2(BaseModel):
         return {"logits": logits}
 
     def transform_input_lengths(self, input_lengths):
+        # Only CNNs transform length
+        # first Convolution:
         lengths = (
             input_lengths + 2 * self.cnns[0].padding[1] - self.cnns[0].dilation[1] * (self.cnns[0].kernel_size[1] - 1) - 1
         ) // self.cnns[0].stride[1] + 1
+        # second convolution:
         lengths = (
             lengths + 2 * self.cnns[3].padding[1] - self.cnns[3].dilation[1] * (self.cnns[3].kernel_size[1] - 1) - 1
         ) // self.cnns[3].stride[1] + 1
+        # new lengths
         return lengths
 
