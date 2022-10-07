@@ -85,7 +85,6 @@ class OracleWERMetric(BaseMetric):
             wer = float("+inf")
             for hypo in hypos:
                 target_text = BaseTextEncoder.normalize_text(target_text)
-                wer_cur = calc_wer(target_text, pred = hypo.text)
                 if wer_cur < wer:
                     wer = wer_cur
             wers.append(wer)

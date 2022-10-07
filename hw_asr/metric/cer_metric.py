@@ -85,7 +85,7 @@ class OracleCERMetric(BaseMetric):
             cer = float("+inf")
             for hypo in hypos:
                 target_text = BaseTextEncoder.normalize_text(target_text)
-                cer_cur = calc_cer(target_text, pred = hypo.text)
+                cer_cur = calc_cer(target_text, hypo.text)
                 if cer_cur < cer:
                     cer = cer_cur
             cers.append(cer)

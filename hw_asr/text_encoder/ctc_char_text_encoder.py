@@ -27,7 +27,7 @@ class CTCCharTextEncoder(CharTextEncoder):
         # we don't want to waste time on downloading models if we don't need them
         self.lm = None
         self.alpha = 0.5
-        self.beta = 0..01
+        self.beta = 0.01
 
     def ctc_decode(self, inds: List[int]) -> str:
         """
@@ -54,22 +54,22 @@ class CTCCharTextEncoder(CharTextEncoder):
         assert voc_size == len(self.ind2char)
         hypos: List[Hypothesis] = []
         # Start dynamic programming
-        hypos.append(Hypothesis('', self.EMPTY_TOK, 1.0))
+        hypos.append(Hypothesis('', '', self.EMPTY_TOK, 1.0))
         for prob in probs:
             updated_hypos: List[Hypothesis] = []
-            for text, last_char, prob in hypos:
+            for text, raw_text, last_char, proba in hypos:
                 for i in range(voc_size):
                     if self.ind2char[i] == last_char:
                         updated_hypos.append(
-                            Hypothesis(text, text + last_char, last_char, prob * probs[i])
+                            Hypothesis(text, raw_text + last_char, last_char, proba * prob[i])
                         )
                     else:
                         updated_hypos.append(
                             Hypothesis(
                                 (text + last_char).replace(self.EMPTY_TOK, ''),
-                                text + last_char,
+                                raw_text + last_char,
                                 self.ind2char[i], 
-                                prob * probs[i]
+                                proba * prob[i]
                             )
                         )
             hypos = sorted(updated_hypos, key=lambda x: x.prob, reverse=True)[:beam_size]
@@ -85,22 +85,22 @@ class CTCCharTextEncoder(CharTextEncoder):
         char_length, voc_size = probs.shape
         assert voc_size == len(self.ind2char)
         hypos: List[Hypothesis] = []
-        hypos.append(Hypothesis('', self.EMPTY_TOK, 1.0))
+        hypos.append(Hypothesis('', '', self.EMPTY_TOK, 1.0))
         for prob in probs:
             updated_hypos: List[Hypothesis] = []
-            for text, last_char, prob in hypos:
+            for text, raw_text, last_char, proba in hypos:
                 for i in range(voc_size):
                     if self.ind2char[i] == last_char:
                         updated_hypos.append(
-                            Hypothesis(text, text + last_char, last_char, prob * probs[i])
+                            Hypothesis(text, raw_text + last_char, last_char, proba * prob[i])
                         )
                     else:
                         updated_hypos.append(
                             Hypothesis(
                                 (text + last_char).replace(self.EMPTY_TOK, ''),
-                                text + last_char,
+                                raw_text + last_char,
                                 self.ind2char[i], 
-                                prob * probs[i]
+                                proba * prob[i]
                             )
                         )
             
