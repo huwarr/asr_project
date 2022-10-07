@@ -92,27 +92,15 @@
       }
     },
     {
-      "type": "OracleWERMetric",
+      "type": "BeamSearcWERMetric",
       "args": {
-        "name": "WER (oracle)"
+        "name": "WER (BeamSearch)"
       }
     },
     {
-      "type": "OracleCERMetric",
+      "type": "BeamSearchCERMetric",
       "args": {
-        "name": "CER (oracle)"
-      }
-    },
-    {
-      "type": "BeamSearchWithLMWERMetric",
-      "args": {
-        "name": "WER (BeamSearch and LM)"
-      }
-    },
-    {
-      "type": "BeamSearchWithLMCERMetric",
-      "args": {
-        "name": "CER (BeamSearch and LM)"
+        "name": "CER (BeamSearch)"
       }
     }
   ],

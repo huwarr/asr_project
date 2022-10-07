@@ -73,6 +73,12 @@ class CTCCharTextEncoder(CharTextEncoder):
                             )
                         )
             hypos = sorted(updated_hypos, key=lambda x: x.prob, reverse=True)[:beam_size]
+        
+        # at the end we might have 2 hypothesis, that are decoded into 
+        # the same text, but one of them ends with empty token, and 
+        # another one - with some other character. let's fix this
+
+        # the real question here is which raw text we will use, when we merge such hypothesis
         return hypos
 
     def ctc_beam_search_with_shallow_fusion(self, probs: torch.tensor, probs_length,
