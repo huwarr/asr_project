@@ -169,6 +169,7 @@ class Trainer(BaseTrainer):
                 self.lr_scheduler.step()
 
         metrics.update("loss", batch["loss"].item())
+        batch['beam_size'] = self.beam_size
         for met in self.metrics:
             metrics.update(met.name, met(**batch))
         return batch

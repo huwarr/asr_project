@@ -40,7 +40,8 @@ class BeamSearchCERMetric(BaseMetric):
         cers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            hypos = self.text_encoder.ctc_beam_search(log_prob.exp().numpy(), length, beam_size)
+            log_prob = log_prob.exp().detach().cpu().numpy()
+            hypos = self.text_encoder.ctc_beam_search(log_prob, length, beam_size)
             pred = hypos[0].text
             target_text = BaseTextEncoder.normalize_text(target_text)
             cers.append(calc_cer(target_text, pred))
@@ -59,7 +60,8 @@ class BeamSearchWithLMCERMetric(BaseMetric):
         cers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            hypos = self.text_encoder.ctc_beam_search_with_shallow_fusion(log_prob.exp().numpy(), length, beam_size)
+            log_prob = log_prob.exp().detach().cpu().numpy()
+            hypos = self.text_encoder.ctc_beam_search_with_shallow_fusion(log_prob, length, beam_size)
             pred = hypos[0].text
             target_text = BaseTextEncoder.normalize_text(target_text)
             cers.append(calc_cer(target_text, pred))
@@ -78,7 +80,8 @@ class OracleCERMetric(BaseMetric):
         cers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            hypos = self.text_encoder.ctc_beam_search(log_prob.exp().numpy(), length, beam_size)
+            log_prob = log_prob.exp().detach().cpu().numpy()
+            hypos = self.text_encoder.ctc_beam_search(log_prob, length, beam_size)
             cer = float("+inf")
             for hypo in hypos:
                 target_text = BaseTextEncoder.normalize_text(target_text)
