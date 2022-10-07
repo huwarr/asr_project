@@ -39,7 +39,7 @@
   "data": {
     "train": {
       "batch_size": 10,
-      "num_workers": 0,
+      "num_workers": 2,
       "datasets": [
         {
           "type": "LibrispeechDataset",
@@ -71,7 +71,7 @@
   "optimizer": {
     "type": "AdamW",
     "args": {
-      "lr": 3e-4
+      "lr": 1e-4
     }
   },
   "loss": {
@@ -122,7 +122,7 @@
       "steps_per_epoch": 100,
       "epochs": 10,
       "anneal_strategy": "cos",
-      "max_lr": 1e-3,
+      "max_lr": 5e-4,
       "pct_start": 0.2
     }
   },
