@@ -16,6 +16,9 @@ from hw_asr.logger.utils import plot_spectrogram_to_buf
 from hw_asr.metric.utils import calc_cer, calc_wer
 from hw_asr.utils import inf_loop, MetricTracker
 
+import wandb
+from wandb import AlertLevel
+
 
 class Trainer(BaseTrainer):
     """
@@ -143,6 +146,12 @@ class Trainer(BaseTrainer):
         for part, dataloader in self.evaluation_dataloaders.items():
             val_log = self._evaluation_epoch(epoch, part, dataloader)
             log.update(**{f"{part}_{name}": value for name, value in val_log.items()})
+        
+        wandb.alert(
+            title='Epoch done',
+            text=f'Epoch {epoch} is done',
+            level=AlertLevel.INFO
+        )
 
         return log
 
