@@ -22,7 +22,7 @@ class DeepSpeech2(BaseModel):
         # Parameters of concolutions: page 5 (Table 2)
 
         self.cnns = Sequential(
-            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(41, 11), stride=(2, 1), padding=(20, 5)),
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(41, 11), stride=(2, 2), padding=(20, 5)),
             # They didn't mention activation in the paper.....
             nn.ReLU(),
             nn.BatchNorm2d(num_features=32),
@@ -81,5 +81,11 @@ class DeepSpeech2(BaseModel):
         return {"logits": logits}
 
     def transform_input_lengths(self, input_lengths):
-        return input_lengths
+        lengths = (
+            input_lengths + 2 * self.cnns[0].padding[1] - self.cnns[0].dilation[1] * (self.cnns[0].kernel_size[1] - 1) - 1
+        ) // self.cnns[0].stride[1] + 1
+        lengths = (
+            lengths + 2 * self.cnns[3].padding[1] - self.cnns[3].dilation[1] * (self.cnns[3].kernel_size[1] - 1) - 1
+        ) // self.cnns[3].stride[1] + 1
+        return lengths
 
