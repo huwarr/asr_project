@@ -66,8 +66,8 @@ class CTCCharTextEncoder(CharTextEncoder):
                     else:
                         updated_hypos.append(
                             Hypothesis(
-                                (text + last_char).replace(self.EMPTY_TOK, ''),
-                                raw_text + last_char,
+                                (text + self.ind2char[i]).replace(self.EMPTY_TOK, ''),
+                                raw_text + self.ind2char[i],
                                 self.ind2char[i], 
                                 proba * prob[i]
                             )
@@ -97,8 +97,8 @@ class CTCCharTextEncoder(CharTextEncoder):
                     else:
                         updated_hypos.append(
                             Hypothesis(
-                                (text + last_char).replace(self.EMPTY_TOK, ''),
-                                raw_text + last_char,
+                                (text + self.ind2char[i]).replace(self.EMPTY_TOK, ''),
+                                raw_text + self.ind2char[i],
                                 self.ind2char[i], 
                                 proba * prob[i]
                             )
