@@ -1,8 +1,12 @@
 from typing import List, NamedTuple
 from collections import defaultdict
+import os
+import gzip
+import shutil
 
 import torch
 import kenlm
+from pyctcdecode import build_ctcdecoder
 
 from .char_text_encoder import CharTextEncoder
 
@@ -11,8 +15,6 @@ class Hypothesis(NamedTuple):
     Add last character for conducting dynamic programming in Beam Search
     """
     text: str
-    raw_text: str
-    last_char: str
     prob: float
 
 class CTCCharTextEncoder(CharTextEncoder):
@@ -27,7 +29,16 @@ class CTCCharTextEncoder(CharTextEncoder):
         # we don't want to waste time on downloading models if we don't need them
         self.lm = None
         self.alpha = 0.5
-        self.beta = 0.01
+        self.beta = 0.05
+        self.lm_gz_path = 'lm/3-gram.pruned.3e-7.arpa.gz'
+        self.decompressed_lm_path = 'lm/3-gram.pruned.3e-7.arpa'
+        self.lowered_lm_path = 'lm/lowercase_3-gram.pruned.3e-7.arpa'
+
+        # for fast beam search
+        self.unigrams_path = 'lm/librispeech-vocab.txt'
+        self.fast_decoder = None
+        self.labels = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ']
+
 
     def ctc_decode(self, inds: List[int]) -> str:
         """
@@ -52,72 +63,107 @@ class CTCCharTextEncoder(CharTextEncoder):
         assert len(probs.shape) == 2
         char_length, voc_size = probs.shape
         assert voc_size == len(self.ind2char)
-        hypos: List[Hypothesis] = []
         # Start dynamic programming
-        hypos.append(Hypothesis('', '', self.EMPTY_TOK, 1.0))
-        for prob in probs:
-            updated_hypos: List[Hypothesis] = []
-            for text, raw_text, last_char, proba in hypos:
-                for i in range(voc_size):
+        dp = {
+            ('', self.EMPTY_TOK): 1.0
+        }
+        for j, prob in enumerate(probs):
+            new_dp = defaultdict(float)
+            for (res, last_char), v in dp.items():
+                for i in range(len(prob)):
                     if self.ind2char[i] == last_char:
-                        updated_hypos.append(
-                            Hypothesis(text, raw_text + last_char, last_char, proba * prob[i])
-                        )
+                        new_dp[(res, last_char)] += v * prob[i]
                     else:
-                        updated_hypos.append(
-                            Hypothesis(
-                                (text + self.ind2char[i]).replace(self.EMPTY_TOK, ''),
-                                raw_text + self.ind2char[i],
-                                self.ind2char[i], 
-                                proba * prob[i]
-                            )
-                        )
-            hypos = sorted(updated_hypos, key=lambda x: x.prob, reverse=True)[:beam_size]
+                        new_dp[((res + self.ind2char[i]).replace(self.EMPTY_TOK, ''), self.ind2char[i])] += v * prob[i]
+            if j < len(probs - 1):
+                dp = dict(list(sorted(new_dp.items(), key=lambda x: x[1]), reverse=True)[:beam_size])
+            else:
+                dp = new_dp
         
         # at the end we might have 2 hypothesis, that are decoded into 
         # the same text, but one of them ends with empty token, and 
         # another one - with some other character. let's fix this
-
-        # the real question here is which raw text we will use, when we merge such hypothesis
+        hypos_dict = defaultdict(float)
+        for (res, last_char), v in dp.items():
+            hypos_dict[res] += v
+        
+        hypos = sorted([Hypothesis(text, prob) for text, prob in hypos_dict.items()], key=lambda x: x.prob, reverse=True)[:beam_size]
         return hypos
 
     def ctc_beam_search_with_shallow_fusion(self, probs: torch.tensor, probs_length,
                         beam_size: int = 100) -> List[Hypothesis]:
         # download LM for shallow fusion if haven't done it yet
         if not self.lm:
-            self.lm = kenlm.Model('lm/3-gram.pruned.3e-7.arpa')
-        # strat with usual Beam Search
+            with gzip.open(self.lm_gz_path, 'rb') as f_in:
+                with open(self.decompressed_lm_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+            with open(self.decompressed_lm_path, 'r') as f_upper:
+                with open(self.lowered_lm_path, 'w') as f_lower:
+                    for line in f_upper:
+                        f_lower.write(line.lower())
+            
+            self.lm = kenlm.Model(self.lowered_lm_path)
+
         assert len(probs.shape) == 2
         char_length, voc_size = probs.shape
         assert voc_size == len(self.ind2char)
-        hypos: List[Hypothesis] = []
-        hypos.append(Hypothesis('', '', self.EMPTY_TOK, 1.0))
-        for prob in probs:
-            updated_hypos: List[Hypothesis] = []
-            for text, raw_text, last_char, proba in hypos:
-                for i in range(voc_size):
+        # Start dynamic programming
+        dp = {
+            ('', self.EMPTY_TOK): 1.0
+        }
+        for j, prob in enumerate(probs):
+            new_dp = defaultdict(float)
+            for (res, last_char), v in dp.items():
+                for i in range(len(prob)):
                     if self.ind2char[i] == last_char:
-                        updated_hypos.append(
-                            Hypothesis(text, raw_text + last_char, last_char, proba * prob[i])
-                        )
+                        new_dp[(res, last_char)] += v * prob[i]
                     else:
-                        updated_hypos.append(
-                            Hypothesis(
-                                (text + self.ind2char[i]).replace(self.EMPTY_TOK, ''),
-                                raw_text + self.ind2char[i],
-                                self.ind2char[i], 
-                                proba * prob[i]
-                            )
-                        )
-            
+                        new_dp[((res + self.ind2char[i]).replace(self.EMPTY_TOK, ''), self.ind2char[i])] += v * prob[i]
             # Rescore hypothesis with LM before cutting the beam
-            texts = [hypo.text for hypo in updated_hypos]
-            scores = [hypo.prob for hypo in updated_hypos]
-            lengths = [len(hypo.text) for hypo in updated_hypos]
+            texts = [key[0] for key in new_dp.keys()]
+            scores = list(new_dp.values())
+            lengths = [len(text) for text in texts]
             lm_scores = torch.tensor([10**self.lm.score(text) for text in texts])
             new_scores = torch.tensor(scores) + self.alpha * lm_scores - self.beta * torch.tensor(lengths)
-            indices = new_scores.argsort(descending=True).tolist()
+            
+            dp = dict([((res, last_char), new_scores[i]) for i, (res, last_char) in enumerate(new_dp.keys())])
 
-            # Cut beam
-            hypos = [updated_hypos[ind] for ind in indices[:beam_size]]
+            if j < len(probs - 1):
+                dp = dict(list(sorted(new_dp.items(), key=lambda x: x[1]), reverse=True)[:beam_size])
+            else:
+                dp = new_dp
+        
+        hypos_dict = defaultdict(float)
+        for (res, last_char), v in dp.items():
+            hypos_dict[res] += v
+        
+        hypos = sorted([Hypothesis(text, prob) for text, prob in hypos_dict.items()], key=lambda x: x.prob, reverse=True)[:beam_size]
         return hypos
+
+    def fast_beam_search_with_shallow_fusion(self, probs: torch.tensor, probs_length,
+                        beam_size: int = 100) -> List[Hypothesis]:
+        if not self.fast_decoder:
+            with gzip.open(self.lm_gz_path, 'rb') as f_in:
+                with open(self.decompressed_lm_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+
+            with open(self.decompressed_lm_path, 'r') as f_upper:
+                with open(self.lowered_lm_path, 'w') as f_lower:
+                    for line in f_upper:
+                        f_lower.write(line.lower())
+
+            with open(self.unigrams_path) as f:
+                unigram_list = [t.lower() for t in f.read().strip().split("\n")]
+            
+            self.fast_decoder = build_ctcdecoder(
+                self.labels,
+                kenlm_model_path=self.lowered_lm_path,
+                unigrams=unigram_list,
+                alpha=self.alpha,
+                beta=self.beta
+            )
+        
+        beam_search_results = self.fast_decoder.decode_beams(probs, beam_width=beam_size)
+
+        return [Hypothesis(hypo[0], hypo[3]) for hypo in beam_search_results]

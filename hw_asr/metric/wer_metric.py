@@ -40,8 +40,8 @@ class BeamSearchWERMetric(BaseMetric):
         wers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            log_prob = log_prob.exp().detach().cpu().numpy()
-            hypos = self.text_encoder.ctc_beam_search(log_prob, length, beam_size)
+            prob = log_prob.exp().detach().cpu().numpy()
+            hypos = self.text_encoder.ctc_beam_search(prob, length, beam_size)
             pred = hypos[0].text
             target_text = BaseTextEncoder.normalize_text(target_text)
             wers.append(calc_wer(target_text, pred))
@@ -60,8 +60,8 @@ class BeamSearchWithLMWERMetric(BaseMetric):
         wers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            log_prob = log_prob.exp().detach().cpu().numpy()
-            hypos = self.text_encoder.ctc_beam_search_with_shallow_fusion(log_prob, length, beam_size)
+            prob = log_prob.exp().detach().cpu().numpy()
+            hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(prob, length, beam_size)
             pred = hypos[0].text
             target_text = BaseTextEncoder.normalize_text(target_text)
             wers.append(calc_wer(target_text, pred))
@@ -80,11 +80,12 @@ class OracleWERMetric(BaseMetric):
         wers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            log_prob = log_prob.exp().detach().cpu().numpy()
-            hypos = self.text_encoder.ctc_beam_search(log_prob, length, beam_size)
+            prob = log_prob.exp().detach().cpu().numpy()
+            hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(prob, length, beam_size)
             wer = float("+inf")
             for hypo in hypos:
                 target_text = BaseTextEncoder.normalize_text(target_text)
+                wer_cur = calc_wer(target_text, hypo.text)
                 if wer_cur < wer:
                     wer = wer_cur
             wers.append(wer)
