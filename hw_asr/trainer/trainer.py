@@ -63,11 +63,14 @@ class Trainer(BaseTrainer):
         self.log_step = 50
 
         self.train_metrics = MetricTracker(
-            "loss", "grad norm", *[m.name for m in self.metrics], writer=self.writer
+            "loss", "grad norm", *[m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"],
+            writer=self.writer
         )
         self.evaluation_metrics = MetricTracker(
-            "loss", *[m.name for m in self.metrics], writer=self.writer
+            "loss", *[m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"],
+            writer=self.writer
         )
+        self.metrics_names = [m.name for m in self.metrics]
         self.sortagrad = sortagrad
         self.beam_size = beam_size
         self.use_lm = use_lm
@@ -181,7 +184,6 @@ class Trainer(BaseTrainer):
                 self.lr_scheduler.step()
 
         metrics.update("loss", batch["loss"].item())
-        batch['beam_size'] = self.beam_size
         for met in self.metrics:
             metrics.update(met.name, met(**batch))
         return batch
@@ -250,6 +252,7 @@ class Trainer(BaseTrainer):
         tuples = list(zip(text, argmax_texts_raw, argmax_texts, log_probs, lengths, audio_path))
         shuffle(tuples)
         rows = {}
+        cers, wers = [], []
         for target, raw_pred, argmax_pred, log_prob, length, audio_path in tuples[:examples_to_log]:
             target = BaseTextEncoder.normalize_text(target)
             argmax_wer = calc_wer(target, argmax_pred) * 100
@@ -267,6 +270,9 @@ class Trainer(BaseTrainer):
             beam_search_wer = calc_wer(target, beam_search_pred) * 100
             beam_search_cer = calc_cer(target, beam_search_pred) * 100
 
+            cers += [beam_search_cer]
+            wers += [beam_search_wer]
+
             rows[Path(audio_path).name] = {
                 "target": target,
                 "raw argmax prediction": raw_pred,
@@ -278,6 +284,15 @@ class Trainer(BaseTrainer):
                 "beam search cer": beam_search_cer,
             }
         self.writer.add_table("predictions", pd.DataFrame.from_dict(rows, orient="index"))
+
+        if "WER (BeamSearch + LM)" in self.metrics_names:
+            self.writer.add_scalar("WER (BeamSearch + LM)", sum(wers) / len(wers))
+        if "CER (BeamSearch + LM)" in self.metrics_names:
+            self.writer.add_scalar("CER (BeamSearch + LM)", sum(cers) / len(cers))
+        if "WER (oracle)" in self.metrics_names:
+            self.writer.add_scalar("WER (oracle)", min(wers))
+        if "CER (oracle)" in self.metrics_names:
+            self.writer.add_scalar("CER (oracle)", min(cers))
 
     def _log_spectrogram(self, spectrogram_batch):
         spectrogram = random.choice(spectrogram_batch.cpu())
