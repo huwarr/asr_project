@@ -37,7 +37,7 @@ class CTCCharTextEncoder(CharTextEncoder):
         # for fast beam search
         self.unigrams_path = 'lm/librispeech-vocab.txt'
         self.fast_decoder = None
-        self.labels = ['', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', ' ']
+        self.labels = [''] + list(self.alphabet)
 
 
     def ctc_decode(self, inds: List[int]) -> str:
@@ -76,7 +76,7 @@ class CTCCharTextEncoder(CharTextEncoder):
                     else:
                         new_dp[((res + self.ind2char[i]).replace(self.EMPTY_TOK, ''), self.ind2char[i])] += v * prob[i]
             if j < len(probs - 1):
-                dp = dict(list(sorted(new_dp.items(), key=lambda x: x[1]), reverse=True)[:beam_size])
+                dp = dict(list(sorted(new_dp.items(), key=lambda x: x[1], reverse=True))[:beam_size])
             else:
                 dp = new_dp
         
@@ -130,7 +130,7 @@ class CTCCharTextEncoder(CharTextEncoder):
             dp = dict([((res, last_char), new_scores[i]) for i, (res, last_char) in enumerate(new_dp.keys())])
 
             if j < len(probs - 1):
-                dp = dict(list(sorted(new_dp.items(), key=lambda x: x[1]), reverse=True)[:beam_size])
+                dp = dict(list(sorted(new_dp.items(), key=lambda x: x[1], reverse=True))[:beam_size])
             else:
                 dp = new_dp
         
@@ -164,6 +164,6 @@ class CTCCharTextEncoder(CharTextEncoder):
                 beta=self.beta
             )
         
-        beam_search_results = self.fast_decoder.decode_beams(probs, beam_width=beam_size)
+        beam_search_results = self.fast_decoder.decode_beams(probs, beam_width=beam_size, beam_prune_logp=float('-inf'), token_min_logp=float('-inf'))
 
         return [Hypothesis(hypo[0], hypo[3]) for hypo in beam_search_results]
