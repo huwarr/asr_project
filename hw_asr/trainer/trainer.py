@@ -16,9 +16,6 @@ from hw_asr.logger.utils import plot_spectrogram_to_buf
 from hw_asr.metric.utils import calc_cer, calc_wer
 from hw_asr.utils import inf_loop, MetricTracker
 
-import wandb
-from wandb import AlertLevel
-
 
 class Trainer(BaseTrainer):
     """
@@ -62,12 +59,14 @@ class Trainer(BaseTrainer):
         self.lr_scheduler = lr_scheduler
         self.log_step = 50
 
+        self.train_metrics_names = [m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"]
         self.train_metrics = MetricTracker(
-            "loss", "grad norm", *[m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"],
+            "loss", "grad norm", *self.train_metrics_names,
             writer=self.writer
         )
+        self.evaluation_metrics_names = [m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"]
         self.evaluation_metrics = MetricTracker(
-            "loss", *[m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"],
+            "loss", *self.evaluation_metrics_names,
             writer=self.writer
         )
         self.metrics_names = [m.name for m in self.metrics]
@@ -115,6 +114,7 @@ class Trainer(BaseTrainer):
                     batch,
                     is_train=True,
                     metrics=self.train_metrics,
+                    metrics_names=self.train_metrics_names
                 )
             except RuntimeError as e:
                 if "out of memory" in str(e) and self.skip_oom:
@@ -152,16 +152,10 @@ class Trainer(BaseTrainer):
         for part, dataloader in self.evaluation_dataloaders.items():
             val_log = self._evaluation_epoch(epoch, part, dataloader)
             log.update(**{f"{part}_{name}": value for name, value in val_log.items()})
-        
-        wandb.alert(
-            title='Epoch done',
-            text=f'Epoch {epoch} is done',
-            level=AlertLevel.INFO
-        )
 
         return log
 
-    def process_batch(self, batch, is_train: bool, metrics: MetricTracker):
+    def process_batch(self, batch, is_train: bool, metrics: MetricTracker, metrics_names: list):
         batch = self.move_batch_to_device(batch, self.device)
         if is_train:
             self.optimizer.zero_grad()
@@ -185,7 +179,8 @@ class Trainer(BaseTrainer):
 
         metrics.update("loss", batch["loss"].item())
         for met in self.metrics:
-            metrics.update(met.name, met(**batch))
+            if met.name in metrics_names:
+                metrics.update(met.name, met(**batch))
         return batch
 
     def _evaluation_epoch(self, epoch, part, dataloader):
@@ -207,6 +202,7 @@ class Trainer(BaseTrainer):
                     batch,
                     is_train=False,
                     metrics=self.evaluation_metrics,
+                    metrics_names=self.evaluation_metrics_names
                 )
             self.writer.set_step(epoch * self.len_epoch, part)
             self._log_scalars(self.evaluation_metrics)
