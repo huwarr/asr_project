@@ -54,6 +54,7 @@ class Trainer(BaseTrainer):
         else:
             # iteration-based training
             self.train_dataloader = inf_loop(self.train_dataloader)
+            self.train_sortagrad_dataloader = inf_loop(self.train_sortagrad_dataloader)
             self.len_epoch = len_epoch
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train" and k != "train_sortagrad"}
         self.lr_scheduler = lr_scheduler
