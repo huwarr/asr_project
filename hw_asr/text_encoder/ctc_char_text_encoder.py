@@ -67,7 +67,7 @@ class CTCCharTextEncoder(CharTextEncoder):
         dp = {
             ('', self.EMPTY_TOK): 1.0
         }
-        for j, prob in enumerate(probs):
+        for j, prob in enumerate(probs[:probs_length]):
             new_dp = defaultdict(float)
             for (res, last_char), v in dp.items():
                 for i in range(len(prob)):
@@ -113,7 +113,7 @@ class CTCCharTextEncoder(CharTextEncoder):
         dp = {
             ('', self.EMPTY_TOK): 1.0
         }
-        for j, prob in enumerate(probs):
+        for j, prob in enumerate(probs[:probs_length]):
             new_dp = defaultdict(float)
             for (res, last_char), v in dp.items():
                 for i in range(len(prob)):
@@ -165,6 +165,6 @@ class CTCCharTextEncoder(CharTextEncoder):
                 beta=self.beta
             )
         
-        beam_search_results = self.fast_decoder.decode_beams(probs, beam_width=beam_size, beam_prune_logp=float('-inf'), token_min_logp=float('-inf'))
+        beam_search_results = self.fast_decoder.decode_beams(probs[:probs_length], beam_width=beam_size)
 
         return [Hypothesis(hypo[0], hypo[3]) for hypo in beam_search_results]

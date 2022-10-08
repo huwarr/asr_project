@@ -246,21 +246,22 @@ class Trainer(BaseTrainer):
         ]
         argmax_texts_raw = [self.text_encoder.decode(inds) for inds in argmax_inds]
         argmax_texts = [self.text_encoder.ctc_decode(inds) for inds in argmax_inds]
-        tuples = list(zip(text, argmax_texts_raw, argmax_texts, log_probs, log_probs_length, audio_path))
+        lengths = log_probs_length.detach().cpu().numpy()
+        tuples = list(zip(text, argmax_texts_raw, argmax_texts, log_probs, lengths, audio_path))
         shuffle(tuples)
         rows = {}
-        for target, raw_pred, argmax_pred, log_prob, log_prob_length, audio_path in tuples[:examples_to_log]:
+        for target, raw_pred, argmax_pred, log_prob, length, audio_path in tuples[:examples_to_log]:
             target = BaseTextEncoder.normalize_text(target)
             argmax_wer = calc_wer(target, argmax_pred) * 100
             argmax_cer = calc_cer(target, argmax_pred) * 100
 
             if self.use_lm:
                 hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(
-                    log_prob.exp().detach().cpu().numpy(), log_prob_length.detach().cpu().numpy(), beam_size=self.beam_size
+                    log_prob.exp().detach().cpu().numpy(), length, beam_size=self.beam_size
                 )
             else:
                 hypos = self.text_encoder.ctc_beam_search(
-                    log_prob.exp().detach().cpu().numpy(), log_prob_length.detach().cpu().numpy(), beam_size=self.beam_size
+                    log_prob.exp().detach().cpu().numpy(), length, beam_size=self.beam_size
                 )
             beam_search_pred = hypos[0].text
             beam_search_wer = calc_wer(target, beam_search_pred) * 100
@@ -306,3 +307,4 @@ class Trainer(BaseTrainer):
             return
         for metric_name in metric_tracker.keys():
             self.writer.add_scalar(f"{metric_name}", metric_tracker.avg(metric_name))
+ 
