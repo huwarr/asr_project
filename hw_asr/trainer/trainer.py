@@ -256,11 +256,11 @@ class Trainer(BaseTrainer):
 
             if self.use_lm:
                 hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(
-                    log_prob.exp().cpu(), log_prob_length.cpu(), beam_size=self.beam_size
+                    log_prob.exp().detach().cpu().numpy(), log_prob_length.detach().cpu().numpy(), beam_size=self.beam_size
                 )
             else:
                 hypos = self.text_encoder.ctc_beam_search(
-                    log_prob.exp().cpu(), log_prob_length.cpu(), beam_size=self.beam_size
+                    log_prob.exp().detach().cpu().numpy(), log_prob_length.detach().cpu().numpy(), beam_size=self.beam_size
                 )
             beam_search_pred = hypos[0].text
             beam_search_wer = calc_wer(target, beam_search_pred) * 100

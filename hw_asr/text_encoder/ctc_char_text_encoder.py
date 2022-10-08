@@ -94,14 +94,15 @@ class CTCCharTextEncoder(CharTextEncoder):
                         beam_size: int = 100) -> List[Hypothesis]:
         # download LM for shallow fusion if haven't done it yet
         if not self.lm:
-            with gzip.open(self.lm_gz_path, 'rb') as f_in:
-                with open(self.decompressed_lm_path, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-
-            with open(self.decompressed_lm_path, 'r') as f_upper:
-                with open(self.lowered_lm_path, 'w') as f_lower:
-                    for line in f_upper:
-                        f_lower.write(line.lower())
+            if not os.path.exists(self.decompressed_lm_path):
+                with gzip.open(self.lm_gz_path, 'rb') as f_in:
+                    with open(self.decompressed_lm_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+            if not os.path.exists(self.lowered_lm_path):
+                with open(self.decompressed_lm_path, 'r') as f_upper:
+                    with open(self.lowered_lm_path, 'w') as f_lower:
+                        for line in f_upper:
+                            f_lower.write(line.lower())
             
             self.lm = kenlm.Model(self.lowered_lm_path)
 
@@ -144,15 +145,15 @@ class CTCCharTextEncoder(CharTextEncoder):
     def fast_beam_search_with_shallow_fusion(self, probs: torch.tensor, probs_length,
                         beam_size: int = 100) -> List[Hypothesis]:
         if not self.fast_decoder:
-            with gzip.open(self.lm_gz_path, 'rb') as f_in:
-                with open(self.decompressed_lm_path, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-
-            with open(self.decompressed_lm_path, 'r') as f_upper:
-                with open(self.lowered_lm_path, 'w') as f_lower:
-                    for line in f_upper:
-                        f_lower.write(line.lower())
-
+            if not os.path.exists(self.decompressed_lm_path):
+                with gzip.open(self.lm_gz_path, 'rb') as f_in:
+                    with open(self.decompressed_lm_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+            if not os.path.exists(self.lowered_lm_path):
+                with open(self.decompressed_lm_path, 'r') as f_upper:
+                    with open(self.lowered_lm_path, 'w') as f_lower:
+                        for line in f_upper:
+                            f_lower.write(line.lower())
             with open(self.unigrams_path) as f:
                 unigram_list = [t.lower() for t in f.read().strip().split("\n")]
             
