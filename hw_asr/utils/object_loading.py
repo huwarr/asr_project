@@ -64,7 +64,7 @@ def get_dataloaders(configs: ConfigParser, text_encoder: BaseTextEncoder):
         # for SortaGrad
         if split == "train":
             dataloader = DataLoader(
-                dataset, batch_size=bs, collate_fn=collate_fn,
+                copy.deepcopy(dataset), batch_size=bs, collate_fn=collate_fn,
                 shuffle=False, num_workers=num_workers,
                 batch_sampler=batch_sampler, drop_last=False
             )

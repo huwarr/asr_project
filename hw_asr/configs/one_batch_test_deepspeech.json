@@ -23,7 +23,8 @@
       {
         "type": "PitchShift",
         "args": {
-          "sample_rate": 16000
+          "sample_rate": 16000,
+          "n_steps": -3
         }
       }
     ],
@@ -92,15 +93,27 @@
       }
     },
     {
-      "type": "BeamSearcWERMetric",
+      "type": "BeamSearchWithLMWERMetric",
       "args": {
-        "name": "WER (BeamSearch)"
+        "name": "WER (BeamSearch + LM)"
       }
     },
     {
-      "type": "BeamSearchCERMetric",
+      "type": "BeamSearchWithLMCERMetric",
       "args": {
-        "name": "CER (BeamSearch)"
+        "name": "CER (BeamSearch + LM)"
+      }
+    },
+    {
+      "type": "OracleWERMetric",
+      "args": {
+        "name": "WER (oracle)"
+      }
+    },
+    {
+      "type": "OracleCERMetric",
+      "args": {
+        "name": "CER (oracle)"
       }
     }
   ],

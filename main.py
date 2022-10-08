@@ -3,6 +3,7 @@ from hw_asr.model.baseline_model import BaselineModel
 from hw_asr.collate_fn.collate import collate_fn
 from hw_asr.datasets import LibrispeechDataset
 from hw_asr.utils.parse_config import ConfigParser
+from hw_asr.augmentations.wave_augmentations import PitchShift, RoomImpulseResponse, GaussianNoise
 
 model = DeepSpeech2(128, 10)
 baseline = BaselineModel(128, 10)
@@ -15,6 +16,12 @@ ds = LibrispeechDataset(
 batch_size = 3
 batch = collate_fn([ds[i] for i in range(batch_size)])
 
+#aug = PitchShift(1600, -3)
+#augmented = aug(batch['wav'])
+aug = RoomImpulseResponse()
+augmented = aug(batch['wav'])
+aug = GaussianNoise()
+augmented = aug(batch['wav'])
 
 out1 = baseline(**batch)
 out2 = model(**batch)

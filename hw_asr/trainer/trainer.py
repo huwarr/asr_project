@@ -47,14 +47,16 @@ class Trainer(BaseTrainer):
         self.text_encoder = text_encoder
         self.config = config
         self.train_dataloader = dataloaders["train"]
-        self.train_sortagrad_dataloader = dataloaders["train_sortagrad"]
+        if sortagrad:
+            self.train_sortagrad_dataloader = dataloaders["train_sortagrad"]
         if len_epoch is None:
             # epoch-based training
             self.len_epoch = len(self.train_dataloader)
         else:
             # iteration-based training
             self.train_dataloader = inf_loop(self.train_dataloader)
-            self.train_sortagrad_dataloader = inf_loop(self.train_sortagrad_dataloader)
+            if sortagrad:
+                self.train_sortagrad_dataloader = inf_loop(self.train_sortagrad_dataloader)
             self.len_epoch = len_epoch
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train" and k != "train_sortagrad"}
         self.lr_scheduler = lr_scheduler
