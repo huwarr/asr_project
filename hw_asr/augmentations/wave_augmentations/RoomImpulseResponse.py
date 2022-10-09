@@ -24,7 +24,7 @@ class RoomImpulseResponse(AugmentationBase):
     def __call__(self, data: torch.Tensor):
         batch_size = data.shape[0]
         x = F.pad(data, [self.left_pad, self.right_pad]).view(batch_size, 1, -1)
-        x = F.conv1d(x, self.flipped_rir.view(1, 1, -1)).squeeze(dim=1)
+        x = F.conv1d(x, 0.5 * self.flipped_rir.view(1, 1, -1)).squeeze(dim=1)
         if x.abs().max() > 1:
             x /= x.abs().max()
         return x

@@ -1,15 +1,17 @@
 import torchaudio
 from  torch import Tensor
+import random
 
 from hw_asr.augmentations.base import AugmentationBase
 
 class PitchShift(AugmentationBase):
     """
-    Inpired by seminar 3 + https://pytorch.org/audio/0.10.0/tutorials/audio_data_augmentation_tutorial.html#audio-data-augmentation 
+    Inpired by seminar 3
     """
-    def __init__(self, sample_rate, n_steps, **kwargs):
-        self._aug = torchaudio.transforms.PitchShift(sample_rate=sample_rate, n_steps=n_steps)
-
+    def __init__(self, sample_rate, **kwargs):
+        self.steps = [-3, -2, -1, 1, 2, 3]
+        self.sr = sample_rate
+        
     def __call__(self, data: Tensor):
-        #x = data.unsqueeze(1)
-        return self._aug(data)#.squeeze(1)
+        n_steps = random.choice(self.steps)
+        return torchaudio.transforms.PitchShift(sample_rate=self.sr, n_steps=n_steps)(data)
