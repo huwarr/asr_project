@@ -13,18 +13,13 @@
   "augmentations": {
     "wave": [
       {
-        "type": "GaussianNoise",
-        "args": {}
-      },
-      {
         "type": "RoomImpulseResponse",
         "args": {}
       },
       {
         "type": "PitchShift",
         "args": {
-          "sample_rate": 16000,
-          "n_steps": -3
+          "sample_rate": 16000
         }
       }
     ],
@@ -72,7 +67,7 @@
   "optimizer": {
     "type": "AdamW",
     "args": {
-      "lr": 1e-4
+      "lr": 3e-4
     }
   },
   "loss": {
