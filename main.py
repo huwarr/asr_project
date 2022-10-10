@@ -16,13 +16,6 @@ ds = LibrispeechDataset(
 batch_size = 3
 batch = collate_fn([ds[i] for i in range(batch_size)])
 
-#aug = PitchShift(1600, -3)
-#augmented = aug(batch['wav'])
-aug = RoomImpulseResponse()
-augmented = aug(batch['wav'])
-aug = GaussianNoise()
-augmented = aug(batch['wav'])
-
 out1 = baseline(**batch)
 out2 = model(**batch)
 

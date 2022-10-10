@@ -25,7 +25,6 @@ def collate_fn(dataset_items: List[dict]):
         batch_text_enc[i, :text_enc_lengths[i]] = item['text_encoded']
     
     # now we can save the rest, which doesn't require padding
-    batch_durations = torch.tensor([item['duration'] for item in dataset_items])
     batch_texts = [item['text'] for item in dataset_items]
     batch_paths = [item['audio_path'] for item in dataset_items]
     batch_wavs = [item['audio'] for item in dataset_items]

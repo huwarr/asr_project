@@ -69,6 +69,8 @@ class DeepSpeech2(BaseModel):
             x = nn.utils.rnn.pack_padded_sequence(x, self.transform_input_lengths(spectrogram_length), batch_first=True, enforce_sorted=False)
             # only hidden states go further
             x, _ = rnn(x)
+            # unpack sequence for batch norm
+            x, _ = nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
             # BatchNorm1d takes input of shape: (batch size X features X sequence length)
             x = self.batchNorms[i](x.transpose(1, 2)).transpose(1, 2)
         # lookahead Convolution and co.
