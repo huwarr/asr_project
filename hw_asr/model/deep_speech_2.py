@@ -54,7 +54,7 @@ class DeepSpeech2(BaseModel):
         self.head = nn.Linear(in_features=fc_hidden, out_features=n_class)
 
 
-    def forward(self, spectrogram, **batch):
+    def forward(self, spectrogram, spectrogram_length, **batch):
         # add channels
         x = torch.unsqueeze(spectrogram, dim=1)
         x = self.cnns(x)
@@ -65,6 +65,8 @@ class DeepSpeech2(BaseModel):
         x = x.transpose(1, 2)
         # finally, RNNs
         for i, rnn in enumerate(self.rnns):
+            # pack padded sequence for rnn <3
+            x = nn.utils.rnn.pack_padded_sequence(x, self.transform_input_lengths(spectrogram_length), batch_first=True, enforce_sorted=False)
             # only hidden states go further
             x, _ = rnn(x)
             # BatchNorm1d takes input of shape: (batch size X features X sequence length)
