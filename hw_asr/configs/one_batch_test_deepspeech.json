@@ -13,8 +13,10 @@
   "augmentations": {
     "wave": [
       {
-        "type": "RoomImpulseResponse",
-        "args": {}
+        "type": "GaussianNoise",
+        "args": {
+          "std": 0.005
+        }
       },
       {
         "type": "PitchShift",
