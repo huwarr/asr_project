@@ -15,13 +15,7 @@
       {
         "type": "GaussianNoise",
         "args": {
-          "std": 0.005
-        }
-      },
-      {
-        "type": "PitchShift",
-        "args": {
-          "sample_rate": 16000
+          "std": 0.003
         }
       }
     ],
