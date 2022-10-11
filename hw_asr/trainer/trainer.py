@@ -266,8 +266,8 @@ class Trainer(BaseTrainer):
             beam_search_wer = calc_wer(target, beam_search_pred) * 100
             beam_search_cer = calc_cer(target, beam_search_pred) * 100
 
-            cers += [beam_search_cer]
-            wers += [beam_search_wer]
+            cers += [beam_search_cer / 100]
+            wers += [beam_search_wer / 100]
 
             rows[Path(audio_path).name] = {
                 "target": target,
