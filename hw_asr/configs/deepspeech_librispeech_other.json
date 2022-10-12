@@ -23,7 +23,7 @@
   },
   "data": {
     "train": {
-      "batch_size": 512,
+      "batch_size": 50,
       "num_workers": 5,
       "datasets": [
         {
@@ -136,7 +136,7 @@
   "lr_scheduler": {
     "type": "OneCycleLR",
     "args": {
-      "steps_per_epoch": 5000,
+      "steps_per_epoch": 1500,
       "epochs": 60,
       "anneal_strategy": "cos",
       "max_lr": 5e-4,
@@ -149,10 +149,10 @@
     "save_period": 5,
     "verbosity": 2,
     "monitor": "min val_loss",
-    "early_stop": 5000,
+    "early_stop": 1500,
     "visualize": "wandb",
     "wandb_project": "asr_project_final",
-    "len_epoch": 5000,
+    "len_epoch": 1500,
     "grad_norm_clip": 10
   }
 }
