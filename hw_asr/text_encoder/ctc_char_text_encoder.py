@@ -11,9 +11,6 @@ from pyctcdecode import build_ctcdecoder
 from .char_text_encoder import CharTextEncoder
 
 class Hypothesis(NamedTuple):
-    """
-    Add last character for conducting dynamic programming in Beam Search
-    """
     text: str
     prob: float
 
