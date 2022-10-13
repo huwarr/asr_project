@@ -15,7 +15,7 @@ from hw_asr.utils import read_json, write_json, ROOT_PATH
 
 
 class ConfigParser:
-    def __init__(self, config, resume=None, modification=None, run_id=None):
+    def __init__(self, config, resume=None,resume_wandb=None, modification=None, run_id=None):
         """
         class to parse configuration json file. Handles hyperparameters for training,
         initializations of modules, checkpoint saving and logging module.
@@ -30,6 +30,7 @@ class ConfigParser:
         # load config file and apply modification
         self._config = _update_config(config, modification)
         self.resume = resume
+        self.resume_wandb = resume_wandb
         self._text_encoder = None
 
         # set save_dir where trained model and log will be saved.
@@ -84,7 +85,7 @@ class ConfigParser:
         modification = {
             opt.target: getattr(args, _get_opt_name(opt.flags)) for opt in options
         }
-        return cls(config, resume, modification)
+        return cls(config, resume, args.resume_wandb, modification)
 
     @staticmethod
     def init_obj(obj_dict, default_module, *args, **kwargs):
