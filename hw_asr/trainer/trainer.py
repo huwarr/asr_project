@@ -52,12 +52,10 @@ class Trainer(BaseTrainer):
         else:
             # iteration-based training
             self.train_dataloader = inf_loop(self.train_dataloader)
-            if sortagrad:
-                self.train_sortagrad_dataloader = inf_loop(self.train_sortagrad_dataloader)
             self.len_epoch = len_epoch
         self.evaluation_dataloaders = {k: v for k, v in dataloaders.items() if k != "train" and k != "train_sortagrad"}
         self.lr_scheduler = lr_scheduler
-        self.log_step = 50
+        self.log_step = config['trainer']['log_step']
 
         self.train_metrics_names = [m.name for m in self.metrics if m.name != "WER (BeamSearch + LM)" and m.name != "CER (BeamSearch + LM)" and m.name != "WER (oracle)" and m.name != "CER (oracle)"]
         self.train_metrics = MetricTracker(
@@ -103,11 +101,13 @@ class Trainer(BaseTrainer):
         if epoch == self.start_epoch:
             # SortaGrad
             dataloader_curr = self.train_sortagrad_dataloader
+            steps = len(self.train_sortagrad_dataloader)
         else:
             dataloader_curr = self.train_dataloader
+            steps = self.len_epoch
 
         for batch_idx, batch in enumerate(
-                tqdm(dataloader_curr, desc="train", total=self.len_epoch)
+                tqdm(dataloader_curr, desc="train", total=steps)
         ):
             try:
                 batch = self.process_batch(
@@ -127,11 +127,11 @@ class Trainer(BaseTrainer):
                 else:
                     raise e
             self.train_metrics.update("grad norm", self.get_grad_norm())
-            if batch_idx % self.log_step == 0:
+            if batch_idx % self.log_step == 0 or batch_idx == steps - 1:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
-                        epoch, self._progress(batch_idx), batch["loss"].item()
+                        epoch, self._progress(batch_idx, steps, dataloader_curr), batch["loss"].item()
                     )
                 )
                 self.writer.add_scalar(
@@ -214,14 +214,14 @@ class Trainer(BaseTrainer):
             self.writer.add_histogram(name, p, bins="auto")
         return self.evaluation_metrics.result()
 
-    def _progress(self, batch_idx):
+    def _progress(self, batch_idx, total_steps, dataloader):
         base = "[{}/{} ({:.0f}%)]"
-        if hasattr(self.train_dataloader, "n_samples"):
+        if hasattr(dataloader, "n_samples"):
             current = batch_idx * self.train_dataloader.batch_size
-            total = self.train_dataloader.n_samples
+            total = dataloader.n_samples
         else:
             current = batch_idx
-            total = self.len_epoch
+            total = total_steps
         return base.format(current, total, 100.0 * current / total)
 
     def _log_predictions(
