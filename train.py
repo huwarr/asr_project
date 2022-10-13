@@ -90,6 +90,13 @@ if __name__ == "__main__":
         help="path to latest checkpoint (default: None)",
     )
     args.add_argument(
+        "-rw",
+        "--resume_wandb",
+        default=None,
+        type=str,
+        help="id of wandb run to resume",
+    )
+    args.add_argument(
         "-d",
         "--device",
         default=None,

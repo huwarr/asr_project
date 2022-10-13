@@ -17,10 +17,18 @@ class WanDBWriter:
             if config['trainer'].get('wandb_project') is None:
                 raise ValueError("please specify project name for wandb")
 
-            wandb.init(
-                project=config['trainer'].get('wandb_project'),
-                config=config.config
-            )
+            if config.resume_wandb is not None:
+                wandb.init(
+                    project=config['trainer'].get('wandb_project'),
+                    config=config.config,
+                    resume="must",
+                    id=config.resume_wandb
+                )
+            else:
+                wandb.init(
+                    project=config['trainer'].get('wandb_project'),
+                    config=config.config
+                )
             self.wandb = wandb
 
         except ImportError:
