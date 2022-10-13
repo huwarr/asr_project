@@ -98,16 +98,18 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
 
-        if epoch == self.start_epoch:
+        if epoch == self.start_epoch and self.start_epoch == 1:
             # SortaGrad
             dataloader_curr = self.train_sortagrad_dataloader
-            steps = len(self.train_sortagrad_dataloader)
+            len_epoch_curr = len(self.train_sortagrad_dataloader)
+            log_step_curr = len_epoch_curr - 1
         else:
             dataloader_curr = self.train_dataloader
-            steps = self.len_epoch
+            len_epoch_curr = self.len_epoch
+            log_step_curr = self.log_step
 
         for batch_idx, batch in enumerate(
-                tqdm(dataloader_curr, desc="train", total=steps)
+                tqdm(dataloader_curr, desc="train", total=len_epoch_curr)
         ):
             try:
                 batch = self.process_batch(
@@ -127,11 +129,11 @@ class Trainer(BaseTrainer):
                 else:
                     raise e
             self.train_metrics.update("grad norm", self.get_grad_norm())
-            if batch_idx % self.log_step == 0 or batch_idx == steps - 1:
+            if batch_idx % log_step_curr == 0:
                 self.writer.set_step((epoch - 1) * self.len_epoch + batch_idx)
                 self.logger.debug(
                     "Train Epoch: {} {} Loss: {:.6f}".format(
-                        epoch, self._progress(batch_idx, steps, dataloader_curr), batch["loss"].item()
+                        epoch, self._progress(batch_idx, len_epoch_curr, dataloader_curr), batch["loss"].item()
                     )
                 )
                 self.writer.add_scalar(
