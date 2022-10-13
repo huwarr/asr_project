@@ -249,25 +249,28 @@ class Trainer(BaseTrainer):
         shuffle(tuples)
         rows = {}
         cers, wers = [], []
+        cers_lm, wers_lm = [], []
         for target, raw_pred, argmax_pred, log_prob, length, audio_path in tuples[:examples_to_log]:
             target = BaseTextEncoder.normalize_text(target)
             argmax_wer = calc_wer(target, argmax_pred) * 100
             argmax_cer = calc_cer(target, argmax_pred) * 100
 
-            if self.use_lm:
-                hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(
-                    log_prob.exp().detach().cpu().numpy(), length, beam_size=self.beam_size
-                )
-            else:
-                hypos = self.text_encoder.ctc_beam_search(
-                    log_prob.exp().detach().cpu().numpy(), length, beam_size=self.beam_size
-                )
-            beam_search_pred = hypos[0].text
-            beam_search_wer = calc_wer(target, beam_search_pred) * 100
-            beam_search_cer = calc_cer(target, beam_search_pred) * 100
+            hypos = self.text_encoder.ctc_beam_search(
+                log_prob.exp().detach().cpu().numpy(), length, beam_size=self.beam_size
+            )
+            cers.extend([calc_cer(target, hypo.text) for hypo in hypos])
+            wers.extend([calc_wer(target, hypo.text) for hypo in hypos])
 
-            cers += [beam_search_cer / 100]
-            wers += [beam_search_wer / 100]
+            if self.use_lm:
+                hypos_lm = self.text_encoder.fast_beam_search_with_shallow_fusion(
+                    log_prob.exp().detach().cpu().numpy(), length, beam_size=self.beam_size
+                )
+                beam_search_pred = hypos[0].text
+                beam_search_wer = calc_wer(target, beam_search_pred) * 100
+                beam_search_cer = calc_cer(target, beam_search_pred) * 100
+
+                cers_lm += [beam_search_cer / 100]
+                wers_lm += [beam_search_wer / 100]
 
             rows[Path(audio_path).name] = {
                 "target": target,
@@ -282,9 +285,9 @@ class Trainer(BaseTrainer):
         self.writer.add_table("predictions", pd.DataFrame.from_dict(rows, orient="index"))
 
         if "WER (BeamSearch + LM)" in self.metrics_names:
-            self.writer.add_scalar("WER (BeamSearch + LM)", sum(wers) / len(wers))
+            self.writer.add_scalar("WER (BeamSearch + LM)", sum(wers_lm) / len(wers_lm))
         if "CER (BeamSearch + LM)" in self.metrics_names:
-            self.writer.add_scalar("CER (BeamSearch + LM)", sum(cers) / len(cers))
+            self.writer.add_scalar("CER (BeamSearch + LM)", sum(cers_lm) / len(cers_lm))
         if "WER (oracle)" in self.metrics_names:
             self.writer.add_scalar("WER (oracle)", min(wers))
         if "CER (oracle)" in self.metrics_names:
