@@ -98,7 +98,7 @@ class Trainer(BaseTrainer):
         self.train_metrics.reset()
         self.writer.add_scalar("epoch", epoch)
 
-        if epoch == self.start_epoch and self.start_epoch == 1:
+        if self.sortagrad and epoch == self.start_epoch and self.start_epoch == 1:
             # SortaGrad
             dataloader_curr = self.train_sortagrad_dataloader
             len_epoch_curr = len(self.train_sortagrad_dataloader)
