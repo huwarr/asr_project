@@ -33,11 +33,11 @@ class DeepSpeech2(BaseModel):
             nn.GRU(input_size=fc_hidden, hidden_size=fc_hidden, batch_first=True),
             nn.GRU(input_size=fc_hidden, hidden_size=fc_hidden, batch_first=True)
         ])
-        self.batchNorms = nn.ModuleList([
-            nn.BatchNorm1d(num_features=fc_hidden),
-            nn.BatchNorm1d(num_features=fc_hidden),
-            nn.BatchNorm1d(num_features=fc_hidden)
-        ])
+        # self.batchNorms = nn.ModuleList([
+        #     nn.BatchNorm1d(num_features=fc_hidden),
+        #     nn.BatchNorm1d(num_features=fc_hidden),
+        #     nn.BatchNorm1d(num_features=fc_hidden)
+        # ])
 
         # Lookahead is just a CNN, but we move input to the right by tau/2 positions
         self.lookaheadConv = nn.Conv1d(
@@ -72,7 +72,7 @@ class DeepSpeech2(BaseModel):
             # unpack sequence for batch norm
             x, _ = nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
             # BatchNorm1d takes input of shape: (batch size X features X sequence length)
-            x = self.batchNorms[i](x.transpose(1, 2)).transpose(1, 2)
+            # x = self.batchNorms[i](x.transpose(1, 2)).transpose(1, 2)
         # lookahead Convolution and co.
         x = self.lookahead(x.transpose(1, 2))
         # logits

@@ -11,14 +11,7 @@
     "log_spec": true
   },
   "augmentations": {
-    "wave": [
-      {
-        "type": "GaussianNoise",
-        "args": {
-          "std": 0.01
-        }
-      }
-    ],
+    "wave": [ ],
     "spectrogram": [ ]
   },
   "arch": {
