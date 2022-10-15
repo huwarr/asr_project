@@ -28,9 +28,10 @@ class CTCBPETextEncoder(BPETextEncoder):
         self.lowered_lm_path = 'lm/lowercase_3-gram.pruned.3e-7.arpa'
 
         # for fast beam search
-        self.unigrams_path = 'lm/librispeech-vocab.txt'
         self.fast_decoder = None
-        self.labels = [''] + list(self.alphabet)
+        self.unigrams_path = 'lm/librispeech-vocab.txt'
+        self.fast_decoder_with_lm = None
+        self.labels = [''] + list(self.vocab)
 
 
     def ctc_decode(self, inds: List[int]) -> str:
@@ -46,11 +47,18 @@ class CTCBPETextEncoder(BPETextEncoder):
 
     def fast_beam_search(self, probs: torch.tensor, probs_length,
                         beam_size: int = 100) -> List[Hypothesis]:
-        pass
+        if not self.fast_decoder:
+            self.fast_decoder = build_ctcdecoder(
+                self.labels,
+                kenlm_model_path=None
+            )
+        
+        beam_search_results = self.fast_decoder.decode_beams(probs[:probs_length], beam_width=beam_size)
+        return [Hypothesis(hypo[0], hypo[3]) for hypo in beam_search_results]
 
     def fast_beam_search_with_shallow_fusion(self, probs: torch.tensor, probs_length,
                         beam_size: int = 100) -> List[Hypothesis]:
-        if not self.fast_decoder:
+        if not self.fast_decoder_with_lm:
             if not os.path.exists(self.decompressed_lm_path):
                 with gzip.open(self.lm_gz_path, 'rb') as f_in:
                     with open(self.decompressed_lm_path, 'wb') as f_out:
@@ -63,7 +71,7 @@ class CTCBPETextEncoder(BPETextEncoder):
             with open(self.unigrams_path) as f:
                 unigram_list = [t.lower() for t in f.read().strip().split("\n")]
             
-            self.fast_decoder = build_ctcdecoder(
+            self.fast_decoder_with_lm = build_ctcdecoder(
                 self.labels,
                 kenlm_model_path=self.lowered_lm_path,
                 unigrams=unigram_list,
@@ -71,6 +79,6 @@ class CTCBPETextEncoder(BPETextEncoder):
                 beta=self.beta
             )
         
-        beam_search_results = self.fast_decoder.decode_beams(probs[:probs_length], beam_width=beam_size)
+        beam_search_results = self.fast_decoder_with_lm.decode_beams(probs[:probs_length], beam_width=beam_size)
 
         return [Hypothesis(hypo[0], hypo[3]) for hypo in beam_search_results]

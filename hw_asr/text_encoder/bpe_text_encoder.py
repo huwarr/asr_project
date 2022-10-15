@@ -24,6 +24,7 @@ class BPETextEncoder(BaseTextEncoder):
         self.tokenizer = sentencepiece.SentencePieceProcessor()
         self.tokenizer.load('{}.model'.format(self.model_prefix))
         self.vocab_size = self.tokenizer.get_piece_size()
+        self.vocab = [self.tokenizer.id_to_piece(i) for i in range(self.vocab_size)]
 
     def __len__(self):
         return self.vocab_size
@@ -40,5 +41,6 @@ class BPETextEncoder(BaseTextEncoder):
         return self.tokenizer.decode_ids(vector).strip()
 
     def dump(self, file):
+        ind2char = dict(zip(range(self.vocab_size), self.vocab))
         with Path(file).open('w') as f:
-            json.dump(self.ind2char, f)
+            json.dump(ind2char, f)
