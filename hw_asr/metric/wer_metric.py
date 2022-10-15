@@ -60,7 +60,7 @@ class BeamSearchWithLMWERMetric(BaseMetric):
         wers = []
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
-            prob = log_prob.exp().detach().cpu().numpy()
+            prob = log_prob.detach().cpu().numpy()
             hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(prob, length, beam_size)
             pred = hypos[0].text
             target_text = BaseTextEncoder.normalize_text(target_text)
@@ -81,7 +81,7 @@ class OracleWERMetric(BaseMetric):
         lengths = log_probs_length.detach().numpy()
         for log_prob, length, target_text in zip(log_probs, lengths, text):
             prob = log_prob.exp().detach().cpu().numpy()
-            hypos = self.text_encoder.fast_beam_search_with_shallow_fusion(prob, length, beam_size)
+            hypos = self.text_encoder.ctc_beam_search(prob, length, beam_size)
             wer = float("+inf")
             for hypo in hypos:
                 target_text = BaseTextEncoder.normalize_text(target_text)
