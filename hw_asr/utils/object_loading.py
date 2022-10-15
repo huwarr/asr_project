@@ -10,7 +10,7 @@ from hw_asr.collate_fn.collate import collate_fn
 from hw_asr.utils.parse_config import ConfigParser
 
 
-def get_dataloaders(configs: ConfigParser, text_encoder: BaseTextEncoder):
+def get_dataloaders(configs: ConfigParser, text_encoder: BaseTextEncoder, sortagrad=False):
     dataloaders = {}
     for split, params in configs["data"].items():
         num_workers = params.get("num_workers", 1)
@@ -62,7 +62,7 @@ def get_dataloaders(configs: ConfigParser, text_encoder: BaseTextEncoder):
         dataloaders[split] = dataloader
 
         # for SortaGrad
-        if split == "train":
+        if split == "train" and sortagrad:
             dataset_sortagrad = copy.deepcopy(dataset)
             dataset_sortagrad._index = sorted(dataset._index, key=lambda x: x['audio_len'], reverse=False)
 

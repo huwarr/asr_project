@@ -30,7 +30,7 @@ def main(config):
     text_encoder = config.get_text_encoder()
 
     # setup data_loader instances
-    dataloaders = get_dataloaders(config, text_encoder)
+    dataloaders = get_dataloaders(config, text_encoder, soratgrad=False)
 
     # build model architecture, then print to console
     model = config.init_obj(config["arch"], module_arch, n_class=len(text_encoder))
@@ -66,7 +66,7 @@ def main(config):
         dataloaders=dataloaders,
         lr_scheduler=lr_scheduler,
         len_epoch=config["trainer"].get("len_epoch", None),
-        sortagrad=True,
+        sortagrad=False,
         use_lm=True
     )
 
