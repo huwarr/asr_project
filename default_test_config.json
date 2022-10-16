@@ -29,14 +29,22 @@
         {
           "type": "LibrispeechDataset",
           "args": {
-            "part": "train-other-500",
+            "part": "train-clean-100",
             "max_audio_length": 20.0,
-            "max_text_length": 400
+            "max_text_length": 300
+          }
+        },
+        {
+          "type": "LibrispeechDataset",
+          "args": {
+            "part": "train-clean-360",
+            "max_audio_length": 20.0,
+            "max_text_length": 300
           }
         }
       ]
     },
-    "val-clean": {
+    "val": {
       "batch_size": 50,
       "num_workers": 5,
       "datasets": [
@@ -48,19 +56,7 @@
         }
       ]
     },
-    "val-other": {
-      "batch_size": 50,
-      "num_workers": 5,
-      "datasets": [
-        {
-          "type": "LibrispeechDataset",
-          "args": {
-            "part": "dev-other"
-          }
-        }
-      ]
-    },
-    "test-clean": {
+    "test": {
       "batch_size": 50,
       "num_workers": 5,
       "datasets": [
@@ -71,24 +67,12 @@
           }
         }
       ]
-    },
-    "test-other": {
-      "batch_size": 50,
-      "num_workers": 5,
-      "datasets": [
-        {
-          "type": "LibrispeechDataset",
-          "args": {
-            "part": "test-other"
-          }
-        }
-      ]
     }
   },
   "optimizer": {
     "type": "Adam",
     "args": {
-      "lr": 3e-5
+      "lr": 3e-4
     }
   },
   "loss": {
@@ -137,14 +121,14 @@
     "type": "OneCycleLR",
     "args": {
       "steps_per_epoch": 1000,
-      "epochs": 15,
+      "epochs": 40,
       "anneal_strategy": "cos",
-      "max_lr": 5e-5,
+      "max_lr": 5e-4,
       "pct_start": 0.2
     }
   },
   "trainer": {
-    "epochs": 55,
+    "epochs": 40,
     "save_dir": "saved/",
     "save_period": 5,
     "verbosity": 2,
@@ -157,3 +141,4 @@
     "log_step": 200
   }
 }
+

@@ -122,6 +122,7 @@ class CTCCharTextEncoder(CharTextEncoder):
             texts = [key[0] for key in new_dp.keys()]
             scores = list(new_dp.values())
             lengths = [len(text) for text in texts]
+            # https://github.com/kpu/kenlm/issues/150 - LN returns log_10 (logits)
             lm_scores = torch.tensor([10**self.lm.score(text) for text in texts])
             new_scores = torch.tensor(scores) + self.alpha * lm_scores - self.beta * torch.tensor(lengths)
             

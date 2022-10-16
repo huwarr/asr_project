@@ -64,15 +64,16 @@ def main(config, out_file):
             for i in range(len(batch["text"])):
                 argmax = batch["argmax"][i]
                 argmax = argmax[: int(batch["log_probs_length"][i])]
-                hypos = text_encoder.ctc_beam_search_with_shallow_fusion(
-                    batch["probs"][i], batch["log_probs_length"][i], beam_size=100
+                # pyctcdecode-овский beam search принимает на вход логиты!
+                hypos = text_encoder.fast_beam_search_with_shallow_fusion(
+                    batch["logits"][i].cpu().numpy(), batch["log_probs_length"][i], beam_size=100
                 )
                 pred_text_beam_search = [hypo.text for hypo in hypos[:10]]
                 target = batch["text"][i]
 
                 results.append(
                     {
-                        "ground_trurh": target,
+                        "ground_truth": target,
                         "pred_text_argmax": text_encoder.ctc_decode(argmax.cpu().numpy()),
                         "pred_text_beam_search": pred_text_beam_search,
                     }
@@ -83,12 +84,15 @@ def main(config, out_file):
                 wers.append(calc_wer(target, pred) * 100)
                 cers.append(calc_cer(target, pred) * 100)
 
-            results.append(
-                {
-                    "CER": sum(cers) / len(cers),
-                    "WER": sum(wers) / len(wers)
-                }
-            )
+        results.append(
+            {
+                "CER (BeamSearch + LM)": sum(cers) / len(cers),
+                "WER (BeamSearch + LM)": sum(wers) / len(wers)
+            }
+        )
+
+        logger.info('Metrics on {}'.format(config['data']['test']['datasets'][0]['args']['part']))
+        logger.info(results[-1])
 
 
 
