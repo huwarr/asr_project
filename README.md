@@ -6,7 +6,7 @@ We use BeamSearch with shallow fusion to obtain predictions.
 
 Average metrics on `test-clean` set:
 
-[checkpoint](https://drive.google.com/drive/folders/10VUp-W2u42wir_7l32k8glEBdS4nkKei?usp=sharing): `CER = 9.1, WER = 21.09`
+[checkpoint](https://drive.google.com/drive/folders/10VUp-W2u42wir_7l32k8glEBdS4nkKei?usp=sharing): `CER = 9.31, WER = 21.09`
 
 
 ## Installation guide
