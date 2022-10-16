@@ -12,4 +12,4 @@ cd default_test_model
 pip install --upgrade --no-cache-dir gdown
 gdown https://drive.google.com/uc?id=1RKZ3ywb9EbRTrmGNWr51pp0e_eVhEwPg
 gdown https://drive.google.com/uc?id=1yuaNBEoA-Uqfddc1RXIe8VmoKtTo0usG
-cd ,,
+cd ..
