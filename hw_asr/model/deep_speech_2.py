@@ -33,6 +33,8 @@ class DeepSpeech2(BaseModel):
             nn.GRU(input_size=fc_hidden, hidden_size=fc_hidden, batch_first=True),
             nn.GRU(input_size=fc_hidden, hidden_size=fc_hidden, batch_first=True)
         ])
+
+        # This part used to be here, but we don't need it anymore
         # self.batchNorms = nn.ModuleList([
         #     nn.BatchNorm1d(num_features=fc_hidden),
         #     nn.BatchNorm1d(num_features=fc_hidden),
@@ -69,9 +71,10 @@ class DeepSpeech2(BaseModel):
             x = nn.utils.rnn.pack_padded_sequence(x, self.transform_input_lengths(spectrogram_length), batch_first=True, enforce_sorted=False)
             # only hidden states go further
             x, _ = rnn(x)
-            # unpack sequence for batch norm
+            # unpack sequence
             x, _ = nn.utils.rnn.pad_packed_sequence(x, batch_first=True)
             # BatchNorm1d takes input of shape: (batch size X features X sequence length)
+            # depricated :)
             # x = self.batchNorms[i](x.transpose(1, 2)).transpose(1, 2)
         # lookahead Convolution and co.
         x = self.lookahead(x.transpose(1, 2))
